@@ -7,17 +7,15 @@ import http.client
 import time
 import os
 import glob
-import configparser
+from dotenv import load_dotenv
 
 #.env Config Setup + Metadata
-config = configparser.ConfigParser()
-config.readp(open(r'.env'))
-
-DiscordToken = config('Discord Config','token') 
-ArchPort = config('Archipleago Config','port') 
-ArchHost = config('Archipleago Config','server') 
-ArchipelagoLogFiles = config('Archipleago Config','ArchipleagoClientLogs')
-OutputFileLocation = config('Bot Config','BotLoggingFile')
+load_dotenv()
+DiscordToken = os.getenv('DiscordToken')
+ArchPort = os.getenv('ArchipleagoServer')
+ArchHost = os.getenv('ArchipleagoPort')
+ArchipelagoLogFiles = os.getenv('ArchipleagoClientLogs')
+OutputFileLocation = os.getenv('BotLoggingFile')
 
 ArchInfo = ArchHost + ':' + ArchPort
 ArchipelagoLogFiles = ArchipelagoLogFiles + "*.txt"
