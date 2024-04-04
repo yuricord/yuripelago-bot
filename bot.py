@@ -9,6 +9,8 @@ import os
 import glob
 from dotenv import load_dotenv
 
+import configparser
+
 #.env Config Setup + Metadata
 load_dotenv()
 DiscordToken = os.getenv('DiscordToken')
@@ -16,6 +18,16 @@ ArchPort = os.getenv('ArchipleagoServer')
 ArchHost = os.getenv('ArchipleagoPort')
 ArchipelagoLogFiles = os.getenv('ArchipleagoClientLogs')
 OutputFileLocation = os.getenv('BotLoggingFile')
+
+#config = configparser.ConfigParser()
+#config.read('.env')
+
+#DiscordToken = config['Discord Config']['token']
+#ArchPort = config['Archipleago Config']['port'] 
+#ArchHost = config['Archipleago Config']['server'] 
+#ArchipelagoLogFiles = config['Archipleago Config']['ArchipleagoClientLogs']
+#OutputFileLocation = config['Bot Config']['BotLoggingFile']
+
 
 ArchInfo = ArchHost + ':' + ArchPort
 ArchipelagoLogFiles = ArchipelagoLogFiles + "*.txt"
