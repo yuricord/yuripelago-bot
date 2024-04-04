@@ -4,15 +4,15 @@ Discord bridge for Archipelago in python
 
 
 
-# configs
-[Discord Config]
-token = <your discord token for your bot>
+## Configs
+|Key|Description|
+|---|---|
+|DiscordToken|You'r Discord Bot's token|
+|ArchipleagoServer|The URL of the Archipleago server you'd like to connect to|
+|ArchipleagoPort|The port of the Archipleago server you'd like to connect to|
+|ArchipleagoClientLogs|Directory of the Archipeago CommonClient's logs*|
+|BotLoggingFile|File location the bot will store it's own logs|
 
-[Archipleago Config]
-server = <archipleago server address>
-port = <archipleago server port>
-ArchipleagoClientLogs = <Archipleago client log directory>
+**\[*] Ensure directories end in a /**
 
-
-[Bot Config]
-BotLoggingFile = <local bot log directory>
+  
