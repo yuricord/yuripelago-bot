@@ -66,6 +66,8 @@ async def on_message(message):
         await message.channel.send(ArchInfo)
         await message.channel.send(latest_file)
         await message.channel.send(OutputFileLocation)
+        await message.channel.send(RegistrationDirectory)
+        await message.channel.send(ItemQueueDirectory)
 
     if message.content.startswith('$LogPlease'):
         info = open(latest_file,"r")
@@ -78,19 +80,37 @@ async def on_message(message):
         Sender = str(message.author)
         RegistrationFile = RegistrationDirectory + Sender + ".csv"
         RegistrationContent = ArchSlot + "\n"
-        #if not os.path.isfile(RegistrationFile):
-        #    o = open(RegistrationFile,"a")
-        #    o.write("#HereWeGo")
-        #    o.close()
 
-        #ammend file if the registration doesnt exist | Error if it does
-        with open(RegistrationFile, "a+") as o:
-            print(o.readlines())
-            if not ArchSlot in o.readlines():
-                o.write(RegistrationContent)
-                o.close()
+        # Generate the Registration File if it doesn't exist
+        o = open(RegistrationFile, "a")
+        o.close()
 
+        # Get contents of the registration file and save it to 'line'
+        o = open(RegistrationFile, "r")
+        line = o.read()
+        print(line) #Used to debug registration commands
+        o.close()
 
+        # Check the registration file for ArchSlot, if they are not registered; do so. If they already are; tell them.
+        if not ArchSlot in line:
+            await message.channel.send("Registering " + Sender + " for slot " + ArchSlot)
+            o = open(RegistrationFile, "a")
+            o.write(RegistrationContent)
+            o.close()
+        else:
+            await message.channel.send("You're already registered for that slot.")
+
+    if message.content.startswith('$ILoveYou'):
+        await message.channel.send("I know. :)")
+
+    if message.content.startswith('$ketchmeup'):
+        if (message.author).dm_channel == "None":
+            print("No DM channel")
+            print(message.author.dm_channel)
+            await message.author.dm_channel.send("A NEW FIGHTER APPROCHING!!")
+        else:
+            await message.author.create_dm()
+            await KetchupUser(message.author)
 
 
 async def SetupFileRead():
@@ -120,12 +140,8 @@ async def background_task():
     with open(latest_file, 'r') as fp:
         EndOfFile = len(fp.readlines())
 
-
-
-
-
-
-
+async def KetchupUser(DMauthor):
+    await DMauthor.dm_channel.send("Here's your content")
 
 client.run(DiscordToken)
 
