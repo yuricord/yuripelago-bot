@@ -19,15 +19,10 @@ ArchHost = os.getenv('ArchipleagoPort')
 ArchipelagoLogFiles = os.getenv('ArchipleagoClientLogs')
 OutputFileLocation = os.getenv('BotLoggingFile')
 
-#config = configparser.ConfigParser()
-#config.read('.env')
+#.env + Subdirectory Locations
 
-#DiscordToken = config['Discord Config']['token']
-#ArchPort = config['Archipleago Config']['port'] 
-#ArchHost = config['Archipleago Config']['server'] 
-#ArchipelagoLogFiles = config['Archipleago Config']['ArchipleagoClientLogs']
-#OutputFileLocation = config['Bot Config']['BotLoggingFile']
-
+RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
+ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 
 ArchInfo = ArchHost + ':' + ArchPort
 ArchipelagoLogFiles = ArchipelagoLogFiles + "*.txt"
@@ -77,6 +72,27 @@ async def on_message(message):
         MessageContents = info.seek(0, os.SEEK_END)
         await message.channel.send(MessageContents)  
 
+    if message.content.startswith('$register'):
+        ArchSlot = message.content
+        ArchSlot = ArchSlot.replace("$register ","")
+        Sender = str(message.author)
+        RegistrationFile = RegistrationDirectory + Sender + ".csv"
+        RegistrationContent = ArchSlot + "\n"
+        #if not os.path.isfile(RegistrationFile):
+        #    o = open(RegistrationFile,"a")
+        #    o.write("#HereWeGo")
+        #    o.close()
+
+        #ammend file if the registration doesnt exist | Error if it does
+        with open(RegistrationFile, "a+") as o:
+            print(o.readlines())
+            if not ArchSlot in o.readlines():
+                o.write(RegistrationContent)
+                o.close()
+
+
+
+
 async def SetupFileRead():
     with open(latest_file, 'r') as fp:
         global EndOfFile
@@ -103,6 +119,8 @@ async def background_task():
                 o.close()
     with open(latest_file, 'r') as fp:
         EndOfFile = len(fp.readlines())
+
+
 
 
 
