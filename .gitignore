@@ -1,6 +1,5 @@
 # Custom Exclusions
 *.txt
-RegistrationData/
 
 
 # Byte-compiled / optimized / DLL files

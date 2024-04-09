@@ -100,6 +100,11 @@ async def on_message(message):
         else:
             await message.channel.send("You're already registered for that slot.")
 
+    if message.content.startswith('$clearreg'):
+        Sender = str(message.author)
+        RegistrationFile = RegistrationDirectory + Sender + ".csv"
+        os.remove(RegistrationFile)
+
     if message.content.startswith('$ILoveYou'):
         await message.channel.send("I know. :)")
 
@@ -137,11 +142,28 @@ async def background_task():
                 o = open(OutputFileLocation, "a")
                 o.write(line.split("]: ",4)[1])
                 o.close()
+                ParseDataEntry()
     with open(latest_file, 'r') as fp:
         EndOfFile = len(fp.readlines())
 
 async def KetchupUser(DMauthor):
-    await DMauthor.dm_channel.send("Here's your content")
+    ItemQueueFile = ItemQueueDirectory + DMauthor + ".csv"
+    k = open(ItemQueueFile, "r")
+    ItemQueueLines = k.readlines()
+    for line in ItemQueueLines:
+        await DMauthor.dm_channel.send(line)
+
+def ParseDataEntry():
+    print("To Do :)")
+    SendItemToQueue("Quasky_Test","Test_Item","Test_Sender","Test_Check")
+
+def SendItemToQueue(Recipient, Item, Sender, Check):
+    ItemQueueFile = ItemQueueDirectory + Recipient + ".csv"
+    i = open(ItemQueueFile, "a")
+    ItemWrite = Recipient + "||" + Item + "||" + Sender + "||" + Check
+    i.write(ItemWrite)
+    i.close()
+
 
 client.run(DiscordToken)
 
