@@ -47,6 +47,7 @@ Edit as you see it.
 ## Commands
 
 |Core Commands|Description|
+|---|---|
 |$connect|Connects the bot to the channel you run the command in, and starts background processes|
 |$disconnect|Disconnects the bot from the channel, and stops background processes|
 |$register <slot>|Adds the slot provided to the user's registration file|
@@ -54,6 +55,7 @@ Edit as you see it.
 |$ketchmeup|DMs the user all checks in their ItemQueue file, used to catch you up on missed checks|
 
 |Debug Commands|Description|
+|---|---|
 |$hello|The bot says hello!|
 |$ILoveYou|We all need to hear this sometimes.|
 |$LogPlease|Outputs Archipelago log length|
