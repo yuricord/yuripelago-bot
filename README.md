@@ -31,7 +31,9 @@ sudo apt install python3-pip
 ### Bot dependencies
 
 python3 -m pip install -U discord.py
+
 pip install python-dotenv
+
 pip install numpy
 
 ### CommonClient dependencies
@@ -39,6 +41,7 @@ pip install numpy
 Running CommonClient.py will gather all required modules needed for the Archipelago client to run.
 
 ## Tools
+
 Running /tools/check.sh will force an additon to the Archipelago log for debugging.
 
 Edit as you see it.
