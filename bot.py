@@ -14,10 +14,11 @@ import random
 #.env Config Setup + Metadata
 load_dotenv()
 DiscordToken = os.getenv('DiscordToken')
-ArchPort = os.getenv('ArchipleagoServer')
-ArchHost = os.getenv('ArchipleagoPort')
+ArchHost = os.getenv('ArchipleagoServer')
+ArchPort = os.getenv('ArchipleagoPort')
 ArchipelagoLogFiles = os.getenv('ArchipleagoClientLogs')
 OutputFileLocation = os.getcwd() + os.getenv('BotLoggingFile')
+DeathFileLocation = os.getcwd() + os.getenv('DeathLoggingFile')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
 ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 JoinMessage = os.getenv('JoinMessage')
@@ -57,7 +58,7 @@ async def on_message(message):
     if message.content.startswith('$disconnect'):
         await message.channel.send('Channel disconnected. Battle control - Offline.')
         background_task.cancel()
-        reassurance().cancel
+        reassurance.cancel()
 
     # Ping! Pong!
     if message.content.startswith('$hello'):
@@ -183,10 +184,17 @@ async def background_task():
                         "\nCheck: " + check + "```"
                         )
 
-                await ChannelLock.send(entry)
+                # DEBUG: Sends the item in chat as well
+                # await ChannelLock.send(entry)
                 SendItemToQueue(name,item,sender,check)
                 
                 o = open(OutputFileLocation, "a")
+                o.write(entry)
+                o.close()
+            if "DeathLink" in line:
+                entry = line.split("]: ")[1]
+                await ChannelLock.send("**"+ entry + "**")
+                o = open(DeathFileLocation, "a")
                 o.write(entry)
                 o.close()
     with open(latest_file, 'r') as fp:
@@ -197,16 +205,23 @@ async def background_task():
 ## Yoinks their registration file, scans through it, then find the related ItemQueue file to scan through 
 async def KetchupUser(DMauthor):
     RegistrationFile = RegistrationDirectory + DMauthor.name + ".csv"
-    r = open(RegistrationFile,"r")
-    RegistrationLines = r.readlines()
-    r.close()
-    for reglines in RegistrationLines:
-        ItemQueueFile = ItemQueueDirectory + reglines.strip() + ".csv"
-        k = open(ItemQueueFile, "r")
-        ItemQueueLines = k.readlines()
-        k.ckose()
-        for line in ItemQueueLines:
-            await DMauthor.dm_channel.send("`" + line + "`")
+    if not os.path.isfile(RegistrationFile):
+        await DMauthor.dm_channel.send("You've not registered for a slot : (")
+    else:
+        r = open(RegistrationFile,"r")
+        RegistrationLines = r.readlines()
+        r.close()
+        for reglines in RegistrationLines:
+            ItemQueueFile = ItemQueueDirectory + reglines.strip() + ".csv"
+            if not os.path.isfile(ItemQueueFile):
+                await DMauthor.dm_channel.send("There are no items for you : /")
+                continue
+            k = open(ItemQueueFile, "r")
+            ItemQueueLines = k.readlines()
+            k.close()
+            os.remove(ItemQueueFile)
+            for line in ItemQueueLines:
+                await DMauthor.dm_channel.send("`" + line + "`")
 
 # Sends the received item check to the ItemQueue for the slot in question.
 def SendItemToQueue(Recipient, Item, Sender, Check):
