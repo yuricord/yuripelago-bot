@@ -18,8 +18,8 @@ Discord bridge for Archipelago in python
 |ArchipleagoClientLogs|Directory of the Archipeago CommonClient's logs*|
 |BotLoggingFile|File location the bot will store it's own logs|
 |DeathLoggingFile|File location for the deathlink logs|
-|PlayerRegistrationDirectory|Directory of the Player Registration Mappings|
-|PlayerItemQueueDirectory|Directory that stores player item queues|
+|PlayerRegistrationDirectory|Directory of the Player Registration Mappings*|
+|PlayerItemQueueDirectory|Directory that stores player item queues*|
 |JoinMessage|A custom join message (console only) for the bot|
 
 
