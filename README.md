@@ -54,6 +54,9 @@ Edit as you see it.
 |---|---|
 |$connect|Connects the bot to the channel you run the command in, and starts background processes|
 |$disconnect|Disconnects the bot from the channel, and stops background processes|
+
+|Player Commands|Description|
+|---|---|
 |$register <slot>|Adds the slot provided to the user's registration file|
 |$clearreg|Clears the user's registration file|
 |$ketchmeup|DMs the user all checks in their ItemQueue file, used to catch you up on missed checks|
