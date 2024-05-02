@@ -78,7 +78,6 @@ async def on_message(message):
         MessageContents = info.seek(0, os.SEEK_END)
         await message.channel.send(MessageContents)  
 
-
     # Registers user for a alot in Archipelago
     if message.content.startswith('$register'):
         ArchSlot = message.content
@@ -126,6 +125,10 @@ async def on_message(message):
             await message.author.create_dm()
             await KetchupUser(message.author)
 
+    # Runs the deathcounter message process
+    if message.content.startswith('$deathcount'):
+        await CountDeaths()
+
 # Sets up the pointer for the logfile, then starts background processes.
 async def SetupFileRead():
     with open(latest_file, 'r') as fp:
@@ -161,14 +164,14 @@ async def background_task():
         for _ in range(EndOfFile):
            next(f)
         for line in f:
+
+            # For item checks, the log file will output a "FileLog" string that is parced for content (Thanks P2Ready)
             if "FileLog" in line:
                 entry = line.split("]: ")[1]
                 print(entry)
 
                 #Let's massage that there string
                 ### This already needs a rework, but it works if strings behave nicely ###
-
-
                 if "sent" in entry:
                     sender = entry.split(" sent ")[0]
                     entry = entry.split(" sent ")[1] # issue if sender name has "sent" substring
@@ -191,12 +194,16 @@ async def background_task():
                 o = open(OutputFileLocation, "a")
                 o.write(entry)
                 o.close()
+
+            # Deathlink messages are gathered and stored in the deathlog for shame purposes.
             if "DeathLink" in line:
                 entry = line.split("]: ")[1]
                 await ChannelLock.send("**"+ entry + "**")
                 o = open(DeathFileLocation, "a")
                 o.write(entry)
                 o.close()
+
+    # Now we scan to the end of the file and store it so we know how far we've read thus far
     with open(latest_file, 'r') as fp:
         EndOfFile = len(fp.readlines())
 
@@ -230,6 +237,27 @@ def SendItemToQueue(Recipient, Item, Sender, Check):
     ItemWrite = Recipient + "||" + Item + "||" + Sender + "||" + Check +"\n"
     i.write(ItemWrite)
     i.close()
+
+# Counts the number of deaths written to the deathlog and outputs it in bulk to the connected discord channel
+async def CountDeaths():
+    d = open(DeathFileLocation,"r")
+    DeathLines = d.readlines()
+    d.close()
+    deathdict = {}
+    for deathline in DeathLines:
+        DeathUser = deathline.split(" from ")[1]
+        DeathUser = DeathUser.split("\n")[0]
+
+        if not DeathUser in deathdict:
+            deathdict[DeathUser] = 1
+        else:
+            deathdict[DeathUser] = deathdict[DeathUser] + 1
+
+    message = "**Death Counter:**"
+    deathkeys = deathdict.keys()
+    for key in deathkeys:
+        message = message + "\n**" + str(key) + ": " + str(deathdict[key]) + "**"
+    await ChannelLock.send(message)
 
 client.run(DiscordToken)
 
