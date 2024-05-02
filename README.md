@@ -56,6 +56,7 @@ Edit as you see it.
 |$register <slot>|Adds the slot provided to the user's registration file|
 |$clearreg|Clears the user's registration file|
 |$ketchmeup|DMs the user all checks in their ItemQueue file, used to catch you up on missed checks|
+|$deathcount|Scans the deathlog and tallies up the current deathcount for each slot|
 
 |Debug Commands|Description|
 |---|---|
