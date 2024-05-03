@@ -197,7 +197,7 @@ async def background_task():
                 o.close()
 
             # Deathlink messages are gathered and stored in the deathlog for shame purposes.
-            if "DeathLink" in line:
+            if "DeathLink:" in line:
                 entry = line.split("]: ")[1]
                 await ChannelLock.send("**"+ entry + "**")
                 o = open(DeathFileLocation, "a")
