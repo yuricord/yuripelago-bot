@@ -16,7 +16,7 @@ load_dotenv()
 DiscordToken = os.getenv('DiscordToken')
 ArchHost = os.getenv('ArchipleagoServer')
 ArchPort = os.getenv('ArchipleagoPort')
-ArchipelagoLogFiles = os.getenv('ArchipleagoClientLogs')
+ArchipelagoLogFiles = os.getcwd() + os.getenv('ArchipleagoClientLogs')
 OutputFileLocation = os.getcwd() + os.getenv('BotLoggingFile')
 DeathFileLocation = os.getcwd() + os.getenv('DeathLoggingFile')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
@@ -186,11 +186,12 @@ async def background_task():
                         "\nSender: " + sender +
                         "\nCheck: " + check + "```"
                         )
+                    #Sends sent item to the item queue
+                    SendItemToQueue(name,item,sender,check)
+                    
+                if "found their" in entry:
+                    await ChannelLock.send("```"+entry+"```")
 
-                # DEBUG: Sends the item in chat as well
-                # await ChannelLock.send(entry)
-                SendItemToQueue(name,item,sender,check)
-                
                 o = open(OutputFileLocation, "a")
                 o.write(entry)
                 o.close()
