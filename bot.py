@@ -167,6 +167,31 @@ async def background_task():
 
             # For item checks, the log file will output a "FileLog" string that is parced for content (Thanks P2Ready)
             if "FileLog" in line:
+                
+
+
+                #Gathers The timestamp for logging
+                timecodecore = line.split("]: ")[0]
+                timecodecore = timecodecore.split("at ")[1]
+                #Breaks time away from date
+                timecodedate = timecodecore.split(" ")[0]
+                timecodetime = timecodecore.split(" ")[1]
+
+                #Breaks apart datestamp
+                timecode_year = timecodedate.split("-")[0]
+                timecode_month = timecodedate.split("-")[1]
+                timecode_day = timecodedate.split("-")[2]
+
+                #Breaks apart timestamp
+                timecodetime = timecodetime.split(",")[0]
+                timecode_hours = timecodetime.split(":")[0]
+                timecode_min = timecodetime.split(":")[1]
+                timecode_sec = timecodetime.split(":")[2]
+                
+                #Buids the timecode
+                timecode = timecode_day +"||"+ timecode_month +"||"+ timecode_year +"||"+ timecode_hours +"||"+ timecode_min
+
+                #Splits the check from the Timecode string
                 entry = line.split("]: ")[1]
                 print(entry)
 
@@ -188,20 +213,34 @@ async def background_task():
                         )
                     #Sends sent item to the item queue
                     SendItemToQueue(name,item,sender,check)
-                    
+
+                    #Sends ItemCheck to log
+                    ItemCheck = name  +"||"+ sender +"||"+ item +"||"+ check
+                    LogOutput = timecode +"||"+ ItemCheck +"\n"
+                    o = open(OutputFileLocation, "a")
+                    o.write(LogOutput)
+                    o.close()
+
                 if "found their" in entry:
                     await ChannelLock.send("```"+entry+"```")
+                    #Sends self-check to log
+                    LogOutput = timecode +"||"+ entry +"\n"
+                    o = open(OutputFileLocation, "a")
+                    o.write(LogOutput)
+                    o.close()
 
-                o = open(OutputFileLocation, "a")
-                o.write(entry)
-                o.close()
+
 
             # Deathlink messages are gathered and stored in the deathlog for shame purposes.
             if "DeathLink:" in line:
-                entry = line.split("]: ")[1]
-                await ChannelLock.send("**"+ entry + "**")
+                deathentry = line.split("]: ")[1]
+                await ChannelLock.send("**"+ deathentry + "**")
+
+                #write deathlink to log
+                deathentry = deathentry.split("from ")[1]
+                DeathLogOutput = timecode +"||"+ deathentry
                 o = open(DeathFileLocation, "a")
-                o.write(entry)
+                o.write(DeathLogOutput)
                 o.close()
 
     # Now we scan to the end of the file and store it so we know how far we've read thus far
