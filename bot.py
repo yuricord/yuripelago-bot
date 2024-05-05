@@ -69,6 +69,7 @@ async def on_message(message):
         await message.channel.send(ArchInfo)
         await message.channel.send(latest_file)
         await message.channel.send(OutputFileLocation)
+        await message.channel.send(DeathFileLocation)
         await message.channel.send(RegistrationDirectory)
         await message.channel.send(ItemQueueDirectory)
 
