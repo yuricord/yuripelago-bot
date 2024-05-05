@@ -285,7 +285,7 @@ async def CountDeaths():
     d.close()
     deathdict = {}
     for deathline in DeathLines:
-        DeathUser = deathline.split(" from ")[1]
+        DeathUser = deathline.split("||")[5]
         DeathUser = DeathUser.split("\n")[0]
 
         if not DeathUser in deathdict:
