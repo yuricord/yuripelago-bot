@@ -224,7 +224,7 @@ async def background_task():
                 if "found their" in entry:
                     await ChannelLock.send("```"+entry+"```")
                     #Sends self-check to log
-                    LogOutput = timecode +"||"+ entry +"\n"
+                    LogOutput = timecode +"||"+ entry
                     o = open(OutputFileLocation, "a")
                     o.write(LogOutput)
                     o.close()
