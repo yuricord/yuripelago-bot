@@ -37,6 +37,15 @@ pip install python-dotenv
 
 pip install numpy
 
+python -m pip install request
+
+python -m pip install beautifulsoup4
+
+python -m pip install pyplot
+
+python -m pip install MaxNLocator
+
+
 ### CommonClient dependencies
 
 Running CommonClient.py will gather all required modules needed for the Archipelago client to run.
