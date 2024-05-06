@@ -1,6 +1,7 @@
 #Bridgeipelago v0.x
 #A project made with love from the Zajcats
 
+#Core Dependencies
 from discord.ext import tasks
 import discord
 import http.client
@@ -10,8 +11,15 @@ import glob
 from dotenv import load_dotenv
 import numpy as np
 import random
+
+#Scrape Dependencies
+import requests
+from bs4 import BeautifulSoup
+
+#Graphing Dependencies
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
+
 
 #.env Config Setup + Metadata
 load_dotenv()
@@ -131,6 +139,9 @@ async def on_message(message):
     # Runs the deathcounter message process
     if message.content.startswith('$deathcount'):
         await CountDeaths()
+
+    if message.content.statswith('$checkcount'):
+        await CheckCount()
 
 # Sets up the pointer for the logfile, then starts background processes.
 async def SetupFileRead():
@@ -351,6 +362,30 @@ async def CountDeaths():
     # Save image and send - any existing plot will be overwritten
     plt.savefig('DeathPlot.png', bbox_inches="tight")
     await ChannelLock.send(file=discord.File('DeathPlot.png'))
+    
+async def CheckCount():
+    #TODO Replace with ENV
+    URL = "https://archipelago.gg/tracker/QJW4ukq1Tne_uTzrzBcyfg"
+    page = requests.get(URL)
+    soup = BeautifulSoup(page.content, "html.parser")
+    
+    #Yoinks table rows from the checks table
+    tables = soup.find("table",id="checks-table")
+    for slots in tables.find_all('tbody'):
+        rows = slots.find_all('tr')
+
+    #Moves through rows for data
+    for row in rows:
+        slot = (row.find_all('td')[1].text).strip()
+        game = (row.find_all('td')[2].text).strip()
+        status = (row.find_all('td')[3].text).strip()
+        checks = (row.find_all('td')[4].text).strip()
+        percent = (row.find_all('td')[5].text).strip()
+
+        #Print it out to confirm. Reserve for Larboi to work his magic.
+        print(slot + "___" + game + "___" + status + "___" + checks + "___" + percent)
+    
+
 
 client.run(DiscordToken)
 
