@@ -10,13 +10,15 @@ import glob
 from dotenv import load_dotenv
 import numpy as np
 import random
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 #.env Config Setup + Metadata
 load_dotenv()
 DiscordToken = os.getenv('DiscordToken')
-ArchHost = os.getenv('ArchipleagoServer')
-ArchPort = os.getenv('ArchipleagoPort')
-ArchipelagoLogFiles = os.getcwd() + os.getenv('ArchipleagoClientLogs')
+ArchHost = os.getenv('ArchipelagoServer')
+ArchPort = os.getenv('ArchipelagoPort')
+ArchipelagoLogFiles = os.getcwd() + os.getenv('ArchipelagoClientLogs')
 OutputFileLocation = os.getcwd() + os.getenv('BotLoggingFile')
 DeathFileLocation = os.getcwd() + os.getenv('DeathLoggingFile')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
@@ -294,11 +296,61 @@ async def CountDeaths():
         else:
             deathdict[DeathUser] = deathdict[DeathUser] + 1
 
-    message = "**Death Counter:**"
+    deathdict = {key: value for key, value in sorted(deathdict.items())}
+
+    deathnames = []
+    deathcounts = []
+    message = "**Death Counter:**\n```"
     deathkeys = deathdict.keys()
     for key in deathkeys:
-        message = message + "\n**" + str(key) + ": " + str(deathdict[key]) + "**"
+        deathnames.append(str(key))
+        deathcounts.append(int(deathdict[key]))
+        message = message + "\n" + str(key) + ": " + str(deathdict[key])
+    message = message + '```'
     await ChannelLock.send(message)
+
+    ### PLOTTING CODE ###
+
+    with plt.xkcd():
+
+        # Change length of plot long axis based on player count
+        if len(deathnames) >= 20:
+            long_axis=32
+        elif len(deathnames) >= 5:
+            long_axis=16
+        else:
+            long_axis=8
+
+        # Initialize Plot
+        fig = plt.figure(figsize=(long_axis,8))
+        ax = fig.add_subplot(111)
+
+        # Index the players in order
+        player_index = np.arange(0,len(deathnames),1)
+
+        # Plot count vs. player index
+        plot = ax.bar(player_index,deathcounts,color='darkorange')
+
+        # Change "index" label to corresponding player name
+        ax.set_xticks(player_index)
+        ax.set_xticklabels(deathnames,fontsize=20,rotation=-45,ha='left',rotation_mode="anchor")
+
+        # Set y-axis limits to make sure the biggest bar has space for label above it
+        ax.set_ylim(0,max(deathcounts)*1.1)
+
+        # Set y-axis to have integer labels, since this is integer data
+        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.tick_params(axis='y', labelsize=20)
+
+        # Add labels above bars
+        ax.bar_label(plot,fontsize=20) 
+
+        # Plot Title
+        ax.set_title('Death Counts',fontsize=28)
+
+    # Save image and send - any existing plot will be overwritten
+    plt.savefig('DeathPlot.png', bbox_inches="tight")
+    await ChannelLock.send(file=discord.File('DeathPlot.png'))
 
 client.run(DiscordToken)
 
