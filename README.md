@@ -13,9 +13,9 @@ Discord bridge for Archipelago in python
 |Key|Description|
 |---|---|
 |DiscordToken|Your Discord Bot's token|
-|ArchipleagoServer|The URL of the Archipleago server you'd like to connect to|
-|ArchipleagoPort|The port of the Archipleago server you'd like to connect to|
-|ArchipleagoClientLogs|Directory of the Archipeago CommonClient's logs*|
+|ArchipelagoServer|The URL of the Archipelago server you'd like to connect to|
+|ArchipelagoPort|The port of the Archipelago server you'd like to connect to|
+|ArchipelagoClientLogs|Directory of the Archipelago CommonClient's logs*|
 |BotLoggingFile|File location the bot will store it's own logs|
 |DeathLoggingFile|File location for the deathlink logs|
 |PlayerRegistrationDirectory|Directory of the Player Registration Mappings*|
@@ -37,13 +37,10 @@ pip install python-dotenv
 
 pip install numpy
 
-python -m pip install request
+python3 -m pip install beautifulsoup4
 
-python -m pip install beautifulsoup4
+python3 -m pip install matplotlib
 
-python -m pip install pyplot
-
-python -m pip install MaxNLocator
 
 
 ### CommonClient dependencies

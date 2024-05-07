@@ -26,7 +26,8 @@ load_dotenv()
 DiscordToken = os.getenv('DiscordToken')
 ArchHost = os.getenv('ArchipelagoServer')
 ArchPort = os.getenv('ArchipelagoPort')
-ArchipelagoLogFiles = os.getcwd() + os.getenv('ArchipelagoClientLogs')
+ArchLogFiles = os.getcwd() + os.getenv('ArchipelagoClientLogs')
+ArchTrackerURL = os.getenv('ArchipelagoTrackerURL')
 OutputFileLocation = os.getcwd() + os.getenv('BotLoggingFile')
 DeathFileLocation = os.getcwd() + os.getenv('DeathLoggingFile')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
@@ -35,12 +36,12 @@ JoinMessage = os.getenv('JoinMessage')
 
 # Metadata
 ArchInfo = ArchHost + ':' + ArchPort
-ArchipelagoLogFiles = ArchipelagoLogFiles + "*.txt"
 
 # Global Variable Declaration
 
 # Archipleago Log File Assocication
-list_of_files = glob.glob(ArchipelagoLogFiles)
+ArchLogFiles = ArchLogFiles + "*.txt"
+list_of_files = glob.glob(ArchLogFiles)
 latest_file = max(list_of_files, key=os.path.getmtime)
 
 # Discord Bot Initialization
@@ -104,7 +105,7 @@ async def on_message(message):
         # Get contents of the registration file and save it to 'line'
         o = open(RegistrationFile, "r")
         line = o.read()
-        print(line) #Used to debug registration commands
+        #print(line) #Used to debug registration commands
         o.close()
 
         # Check the registration file for ArchSlot, if they are not registered; do so. If they already are; tell them.
@@ -140,8 +141,11 @@ async def on_message(message):
     if message.content.startswith('$deathcount'):
         await CountDeaths()
 
-    if message.content.statswith('$checkcount'):
+    if message.content.startswith('$checkcount'):
         await CheckCount()
+
+    if message.content.startswith('$BEE'):
+        await BEE()
 
 # Sets up the pointer for the logfile, then starts background processes.
 async def SetupFileRead():
@@ -181,9 +185,6 @@ async def background_task():
 
             # For item checks, the log file will output a "FileLog" string that is parced for content (Thanks P2Ready)
             if "FileLog" in line:
-                
-
-
                 #Gathers The timestamp for logging
                 timecodecore = line.split("]: ")[0]
                 timecodecore = timecodecore.split("at ")[1]
@@ -275,14 +276,19 @@ async def KetchupUser(DMauthor):
         for reglines in RegistrationLines:
             ItemQueueFile = ItemQueueDirectory + reglines.strip() + ".csv"
             if not os.path.isfile(ItemQueueFile):
-                await DMauthor.dm_channel.send("There are no items for you : /")
+                await DMauthor.dm_channel.send("There are no items for " + reglines.strip() + " :/")
                 continue
             k = open(ItemQueueFile, "r")
             ItemQueueLines = k.readlines()
             k.close()
             os.remove(ItemQueueFile)
+
+            ketchupmessage = "```You || Item || Sender || Location \n"
             for line in ItemQueueLines:
-                await DMauthor.dm_channel.send("`" + line + "`")
+                ketchupmessage = ketchupmessage + line
+            ketchupmessage = ketchupmessage + "```"
+            await DMauthor.dm_channel.send(ketchupmessage)
+            
 
 # Sends the received item check to the ItemQueue for the slot in question.
 def SendItemToQueue(Recipient, Item, Sender, Check):
@@ -321,7 +327,6 @@ async def CountDeaths():
     await ChannelLock.send(message)
 
     ### PLOTTING CODE ###
-
     with plt.xkcd():
 
         # Change length of plot long axis based on player count
@@ -364,15 +369,16 @@ async def CountDeaths():
     await ChannelLock.send(file=discord.File('DeathPlot.png'))
     
 async def CheckCount():
-    #TODO Replace with ENV
-    URL = "https://archipelago.gg/tracker/QJW4ukq1Tne_uTzrzBcyfg"
-    page = requests.get(URL)
+    page = requests.get(ArchTrackerURL)
     soup = BeautifulSoup(page.content, "html.parser")
     
     #Yoinks table rows from the checks table
     tables = soup.find("table",id="checks-table")
     for slots in tables.find_all('tbody'):
         rows = slots.find_all('tr')
+
+    #Preps check message
+    checkmessage = "```Slot || Game || Status || Checks || % \n"
 
     #Moves through rows for data
     for row in rows:
@@ -381,9 +387,16 @@ async def CheckCount():
         status = (row.find_all('td')[3].text).strip()
         checks = (row.find_all('td')[4].text).strip()
         percent = (row.find_all('td')[5].text).strip()
+        checkmessage = checkmessage + slot + " || " + game + " || " + status + " || " + checks + " || " + percent + "\n"
+    
+    #Finishes the check message
+    checkmessage = checkmessage + "```"
+    await ChannelLock.send(checkmessage)
 
-        #Print it out to confirm. Reserve for Larboi to work his magic.
-        print(slot + "___" + game + "___" + status + "___" + checks + "___" + percent)
+
+async def BEE():
+    message = "```NARRATOR:(Black screen with text; The sound of buzzing bees can be heard)According to all known laws of aviation,:there is no way a beeshould be able to fly. :Its wings are too small to getits fat little body off the ground. :The bee, of course, flies anyway :because bees dont carewhat humans think is impossible.BARRY BENSON:(Barry is picking out a shirt)Yellow, black. Yellow, black.Yellow, black. Yellow, black. :Ooh, black and yellow!Lets shake it up a little.JANET BENSON:Barry! Breakfast is ready!BARRY:Coming! :Hang on a second.(Barry uses his antenna like a phone) :Hello?ADAM FLAYMAN:(Through phone)- Barry?BARRY:- Adam?ADAM:- Can you believe this is happening?BARRY:- I cant. Ill pick you up.(Barry flies down the stairs) :MARTIN BENSON:Looking sharp.JANET:Use the stairs. Your fatherpaid good money for those.BARRY:Sorry. Im excited.MARTIN:Heres the graduate.Were very proud of you, son. :A perfect report card, all Bs.JANET:Very proud.(Rubs Barrys hair)BARRY=Ma! I got a thing going here.JANET:- You got lint on your fuzz.BARRY:- Ow! Thats me!JANET:- Wave to us! Well be in row 118,000.- Bye!(Barry flies out the door)JANET:Barry, I told you,stop flying in the house!(Barry drives through the hive,and is waved at by Adam who is reading anewspaper)BARRY==- Hey, Adam.ADAM:- Hey, Barry.(Adam gets in Barrys car) :- Is that fuzz gel?BARRY:- A little. Special day, graduation.ADAM:Never thought Id make it.(Barry pulls away from the house and continues driving)BARRY:Three days grade school,three days high school...ADAM:Those were awkward.BARRY:Three days college. Im glad I tooka day and hitchhiked around the hive.ADAM==You did come back different.(Barry and Adam pass by Artie, who is jogging)ARTIE:- Hi, Barry!BARRY:- Artie, growing a mustache? Looks good.ADAM:- Hear about Frankie?BARRY:- Yeah.ADAM==- You going to the funeral?BARRY:- No, Im not going to his funeral. :Everybody knows,sting someone, you die. :Dont waste it on a squirrel.Such a hothead.1000000000000000000000000```"
+    await ChannelLock.send(message)
     
 
 
