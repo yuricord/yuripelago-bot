@@ -34,10 +34,12 @@ RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
 ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 JoinMessage = os.getenv('JoinMessage')
 
+
 # Metadata
 ArchInfo = ArchHost + ':' + ArchPort
 
 # Global Variable Declaration
+LastDeathTimecodeGL = "0"
 
 # Archipleago Log File Assocication
 ArchLogFiles = ArchLogFiles + "*.txt"
@@ -61,6 +63,8 @@ async def on_message(message):
     # Connects the bot to the specified channel, then locks that channel in as the main communication method
     if message.content.startswith('$connect'):
         await message.channel.send('Channel connected. Carry on commander.')
+        global LastDeathTimecode
+        LastDeathTimecode = "0"
         global ChannelLock
         ChannelLock = message.channel
         await SetupFileRead() 
@@ -183,28 +187,32 @@ async def background_task():
            next(f)
         for line in f:
 
+            #Gathers The timestamp for logging
+            timecodecore = line.split("]: ")[0]
+            timecodecore = timecodecore.split("at ")[1]
+            #Breaks time away from date
+            timecodedate = timecodecore.split(" ")[0]
+            timecodetime = timecodecore.split(" ")[1]
+
+            #Breaks apart datestamp
+            timecode_year = timecodedate.split("-")[0]
+            timecode_month = timecodedate.split("-")[1]
+            timecode_day = timecodedate.split("-")[2]
+
+            #Breaks apart timestamp
+            timecodetime = timecodetime.split(",")[0]
+            timecode_hours = timecodetime.split(":")[0]
+            timecode_min = timecodetime.split(":")[1]
+            timecode_sec = timecodetime.split(":")[2]
+
+            #Buids the timecode
+            timecode = timecode_day +"||"+ timecode_month +"||"+ timecode_year +"||"+ timecode_hours +"||"+ timecode_min +"||"+ timecode_sec
+
+
+
+
             # For item checks, the log file will output a "FileLog" string that is parced for content (Thanks P2Ready)
             if "FileLog" in line:
-                #Gathers The timestamp for logging
-                timecodecore = line.split("]: ")[0]
-                timecodecore = timecodecore.split("at ")[1]
-                #Breaks time away from date
-                timecodedate = timecodecore.split(" ")[0]
-                timecodetime = timecodecore.split(" ")[1]
-
-                #Breaks apart datestamp
-                timecode_year = timecodedate.split("-")[0]
-                timecode_month = timecodedate.split("-")[1]
-                timecode_day = timecodedate.split("-")[2]
-
-                #Breaks apart timestamp
-                timecodetime = timecodetime.split(",")[0]
-                timecode_hours = timecodetime.split(":")[0]
-                timecode_min = timecodetime.split(":")[1]
-                timecode_sec = timecodetime.split(":")[2]
-                
-                #Buids the timecode
-                timecode = timecode_day +"||"+ timecode_month +"||"+ timecode_year +"||"+ timecode_hours +"||"+ timecode_min
 
                 #Splits the check from the Timecode string
                 entry = line.split("]: ")[1]
@@ -248,15 +256,41 @@ async def background_task():
 
             # Deathlink messages are gathered and stored in the deathlog for shame purposes.
             if "DeathLink:" in line:
-                deathentry = line.split("]: ")[1]
-                await ChannelLock.send("**"+ deathentry + "**")
+                d = open("timecode.txt", "r")
+                DLtimecode = d.read()
+                d.close()
 
-                #write deathlink to log
-                deathentry = deathentry.split("from ")[1]
-                DeathLogOutput = timecode +"||"+ deathentry
-                o = open(DeathFileLocation, "a")
-                o.write(DeathLogOutput)
-                o.close()
+
+                if DLtimecode == timecode:
+                    print("skipping death!")
+                else:
+                    deathentry = line.split("]: ")[1]
+                    await ChannelLock.send("**"+ deathentry + "**")
+
+                    #temp Deathlog for Terraria
+                    if "Mami Papi don't fite" in line or "Scycral Arch2" in line or "Muscle Mommy" in line or "Mami Papi" in line:
+                        deathentry = "from IRL Fishing\n"
+
+                    if "Scycral_muse2" in line:
+                        deathentry = "from Scycral_muse2\n"
+
+                    if "Dark Souls III" in line:
+                        deathentry = "from Soul of Cinder\n"
+
+                    if "yogurt_noita" in line:
+                        deathentry = "from yogurt_noita\n"
+
+                    #write deathlink to log
+                    deathentry = deathentry.split("from ")[1]
+                    DeathLogOutput = timecode +"||"+ deathentry
+                    o = open(DeathFileLocation, "a")
+                    o.write(DeathLogOutput)
+                    o.close()
+
+                    d = open("timecode.txt", "w")
+                    d.write(timecode)
+                    d.close()
+
 
     # Now we scan to the end of the file and store it so we know how far we've read thus far
     with open(latest_file, 'r') as fp:
@@ -286,6 +320,12 @@ async def KetchupUser(DMauthor):
             ketchupmessage = "```You || Item || Sender || Location \n"
             for line in ItemQueueLines:
                 ketchupmessage = ketchupmessage + line
+                if len(ketchupmessage) > 1500:
+                    ketchupmessage = ketchupmessage + "```"
+                    await DMauthor.dm_channel.send(ketchupmessage)
+                    ketchupmessage = "```"
+
+
             ketchupmessage = ketchupmessage + "```"
             await DMauthor.dm_channel.send(ketchupmessage)
             
@@ -305,7 +345,7 @@ async def CountDeaths():
     d.close()
     deathdict = {}
     for deathline in DeathLines:
-        DeathUser = deathline.split("||")[5]
+        DeathUser = deathline.split("||")[6]
         DeathUser = DeathUser.split("\n")[0]
 
         if not DeathUser in deathdict:
@@ -314,6 +354,9 @@ async def CountDeaths():
             deathdict[DeathUser] = deathdict[DeathUser] + 1
 
     deathdict = {key: value for key, value in sorted(deathdict.items())}
+
+
+
 
     deathnames = []
     deathcounts = []

@@ -1,5 +1,9 @@
 # Custom Exclusions
 *.txt
+ItemQueue/
+RegistrationData/
+logs/
+*.png
 
 
 # Byte-compiled / optimized / DLL files
