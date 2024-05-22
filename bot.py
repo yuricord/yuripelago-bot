@@ -28,6 +28,7 @@ ArchHost = os.getenv('ArchipelagoServer')
 ArchPort = os.getenv('ArchipelagoPort')
 ArchLogFiles = os.getcwd() + os.getenv('ArchipelagoClientLogs')
 ArchTrackerURL = os.getenv('ArchipelagoTrackerURL')
+ArchServerURL = os.getenv('ArchipelagoServerURL')
 OutputFileLocation = os.getcwd() + os.getenv('BotLoggingFile')
 DeathFileLocation = os.getcwd() + os.getenv('DeathLoggingFile')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
@@ -57,108 +58,130 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author == client.user:
-        return
-    
-    # Connects the bot to the specified channel, then locks that channel in as the main communication method
-    if message.content.startswith('$connect'):
-        await message.channel.send('Channel connected. Carry on commander.')
-        global LastDeathTimecode
-        LastDeathTimecode = "0"
-        global ChannelLock
-        ChannelLock = message.channel
-        await SetupFileRead() 
-    
-    # Disconnects the bot, and stops the scheduled tasks.
-    if message.content.startswith('$disconnect'):
-        await message.channel.send('Channel disconnected. Battle control - Offline.')
-        background_task.cancel()
-        reassurance.cancel()
+    try:
+        if message.author == client.user:
+            return
 
-    # Ping! Pong!
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello!')
+        # Connects the bot to the specified channel, then locks that channel in as the main communication method
+        if message.content.startswith('$connect'):
+            await message.channel.send('Channel connected. Carry on commander.')
+            global LastDeathTimecode
+            LastDeathTimecode = "0"
+            global ChannelLock
+            ChannelLock = message.channel
+            await SetupFileRead() 
 
-    # Provides debug paths
-    if message.content.startswith('$ArchInfo'):
-        await message.channel.send(ArchInfo)
-        await message.channel.send(latest_file)
-        await message.channel.send(OutputFileLocation)
-        await message.channel.send(DeathFileLocation)
-        await message.channel.send(RegistrationDirectory)
-        await message.channel.send(ItemQueueDirectory)
+        if message.content.startswith('$DEBUGlink'):
+            await message.channel.send('Linked debug channel')
+            global DebugLock
+            DebugLock = message.channel
 
-    # Provides debug log
-    if message.content.startswith('$LogPlease'):
-        info = open(latest_file,"r")
-        MessageContents = info.seek(0, os.SEEK_END)
-        await message.channel.send(MessageContents)  
+        # Disconnects the bot, and stops the scheduled tasks.
+        if message.content.startswith('$disconnect'):
+            await message.channel.send('Channel disconnected. Battle control - Offline.')
+            background_task.cancel()
+            reassurance.cancel()
+            #KeepAlive.cancel()
 
-    # Registers user for a alot in Archipelago
-    if message.content.startswith('$register'):
-        ArchSlot = message.content
-        ArchSlot = ArchSlot.replace("$register ","")
-        Sender = str(message.author)
-        RegistrationFile = RegistrationDirectory + Sender + ".csv"
-        RegistrationContent = ArchSlot + "\n"
+        # Ping! Pong!
+        if message.content.startswith('$hello'):
+            await message.channel.send('Hello!')
 
-        # Generate the Registration File if it doesn't exist
-        o = open(RegistrationFile, "a")
-        o.close()
+        # Provides debug paths
+        if message.content.startswith('$ArchInfo'):
+            await message.channel.send(ArchInfo)
+            await message.channel.send(ArchTrackerURL)
+            await message.channel.send(ArchServerURL)
+            await message.channel.send(latest_file)
+            await message.channel.send(OutputFileLocation)
+            await message.channel.send(DeathFileLocation)
+            await message.channel.send(RegistrationDirectory)
+            await message.channel.send(ItemQueueDirectory)
+            await message.channel.send(DebugLock)
 
-        # Get contents of the registration file and save it to 'line'
-        o = open(RegistrationFile, "r")
-        line = o.read()
-        #print(line) #Used to debug registration commands
-        o.close()
+        # Provides debug log
+        if message.content.startswith('$LogPlease'):
+            info = open(latest_file,"r")
+            MessageContents = info.seek(0, os.SEEK_END)
+            await message.channel.send(MessageContents)  
 
-        # Check the registration file for ArchSlot, if they are not registered; do so. If they already are; tell them.
-        if not ArchSlot in line:
-            await message.channel.send("Registering " + Sender + " for slot " + ArchSlot)
+        # Registers user for a alot in Archipelago
+        if message.content.startswith('$register'):
+            ArchSlot = message.content
+            ArchSlot = ArchSlot.replace("$register ","")
+            Sender = str(message.author)
+            RegistrationFile = RegistrationDirectory + Sender + ".csv"
+            RegistrationContent = ArchSlot + "\n"
+
+            # Generate the Registration File if it doesn't exist
             o = open(RegistrationFile, "a")
-            o.write(RegistrationContent)
             o.close()
-        else:
-            await message.channel.send("You're already registered for that slot.")
 
-    # Clears registration file for user
-    if message.content.startswith('$clearreg'):
-        Sender = str(message.author)
-        RegistrationFile = RegistrationDirectory + Sender + ".csv"
-        os.remove(RegistrationFile)
+            # Get contents of the registration file and save it to 'line'
+            o = open(RegistrationFile, "r")
+            line = o.read()
+            #print(line) #Used to debug registration commands
+            o.close()
 
-    # Sometimes we all need to hear it :)
-    if message.content.startswith('$ILoveYou'):
-        await message.channel.send("Thank you.  You make a diffrence in this world. :)")
+            # Check the registration file for ArchSlot, if they are not registered; do so. If they already are; tell them.
+            if not ArchSlot in line:
+                await message.channel.send("Registering " + Sender + " for slot " + ArchSlot)
+                o = open(RegistrationFile, "a")
+                o.write(RegistrationContent)
+                o.close()
+            else:
+                await message.channel.send("You're already registered for that slot.")
 
-    # Opens a discord DM with the user, and fires off the Katchmeup process
-    if message.content.startswith('$ketchmeup'):
-        if (message.author).dm_channel == "None":
-            print("No DM channel")
-            print(message.author.dm_channel)
-            await message.author.dm_channel.send("A NEW FIGHTER APPROCHING!!")
-        else:
-            await message.author.create_dm()
-            await KetchupUser(message.author)
+        # Clears registration file for user
+        if message.content.startswith('$clearreg'):
+            Sender = str(message.author)
+            RegistrationFile = RegistrationDirectory + Sender + ".csv"
+            os.remove(RegistrationFile)
 
-    # Runs the deathcounter message process
-    if message.content.startswith('$deathcount'):
-        await CountDeaths()
+        # Sometimes we all need to hear it :)
+        if message.content.startswith('$ILoveYou'):
+            await message.channel.send("Thank you.  You make a diffrence in this world. :)")
 
-    if message.content.startswith('$checkcount'):
-        await CheckCount()
+        # Opens a discord DM with the user, and fires off the Katchmeup process
+        if message.content.startswith('$ketchmeup'):
+            if (message.author).dm_channel == "None":
+                print("No DM channel")
+                print(message.author.dm_channel)
+                await message.author.dm_channel.send("A NEW FIGHTER APPROCHING!!")
+            else:
+                await message.author.create_dm()
+                await KetchupUser(message.author)
 
-    if message.content.startswith('$BEE'):
-        await BEE()
+        # Runs the deathcounter message process
+        if message.content.startswith('$deathcount'):
+            await CountDeaths()
+
+        if message.content.startswith('$checkcount'):
+            await CheckCount()
+
+        if message.content.startswith('$BEE'):
+            await BEE()
+    except:
+        await DebugLock.send('ERROR IN CORE_MESSAGE_READ')
 
 # Sets up the pointer for the logfile, then starts background processes.
 async def SetupFileRead():
-    with open(latest_file, 'r') as fp:
-        global EndOfFile
-        EndOfFile = len(fp.readlines())
-        print('Total Number of lines:', EndOfFile)  
-    background_task.start()
-    reassurance.start()
+    try:
+        with open(latest_file, 'r') as fp:
+            global EndOfFile
+            EndOfFile = len(fp.readlines())
+            print('Total Number of lines:', EndOfFile)  
+        background_task.start()
+        reassurance.start()
+        #KeepAlive.start()
+    except:
+        await DebugLock.send('ERROR IN SETUPFILEREAD')
+
+@tasks.loop(seconds=5400)
+async def KeepAlive():
+    serverpage = requests.get(ArchServerURL)
+    print("PING PONG Server")
+
 
 # Because Quasky is paranoid, reassures you that the bot is running.
 @tasks.loop(seconds=np.random.randint(60,300))
@@ -181,260 +204,277 @@ async def reassurance():
 ## Scans the log file every two seconds and processes recceived item checks
 @tasks.loop(seconds=2)
 async def background_task():
-    global EndOfFile
-    with open(latest_file,"r") as f:
-        for _ in range(EndOfFile):
-           next(f)
-        for line in f:
+    try:
+        global EndOfFile
+        with open(latest_file,"r") as f:
+            for _ in range(EndOfFile):
+               next(f)
+            for line in f:
 
-            #Gathers The timestamp for logging
-            timecodecore = line.split("]: ")[0]
-            timecodecore = timecodecore.split("at ")[1]
-            #Breaks time away from date
-            timecodedate = timecodecore.split(" ")[0]
-            timecodetime = timecodecore.split(" ")[1]
+                #If the line doesn't begin with a [ then skip it! It's just a trace or something we don't need/care about
+                if not line[0] == "[":
+                    continue
 
-            #Breaks apart datestamp
-            timecode_year = timecodedate.split("-")[0]
-            timecode_month = timecodedate.split("-")[1]
-            timecode_day = timecodedate.split("-")[2]
+                #Gathers The timestamp for logging
+                timecodecore = line.split("]: ")[0]
+                timecodecore = timecodecore.split("at ")[1]
+                #Breaks time away from date
+                timecodedate = timecodecore.split(" ")[0]
+                timecodetime = timecodecore.split(" ")[1]
 
-            #Breaks apart timestamp
-            timecodetime = timecodetime.split(",")[0]
-            timecode_hours = timecodetime.split(":")[0]
-            timecode_min = timecodetime.split(":")[1]
-            timecode_sec = timecodetime.split(":")[2]
+                #Breaks apart datestamp
+                timecode_year = timecodedate.split("-")[0]
+                timecode_month = timecodedate.split("-")[1]
+                timecode_day = timecodedate.split("-")[2]
 
-            #Buids the timecode
-            timecode = timecode_day +"||"+ timecode_month +"||"+ timecode_year +"||"+ timecode_hours +"||"+ timecode_min +"||"+ timecode_sec
+                #Breaks apart timestamp
+                timecodetime = timecodetime.split(",")[0]
+                timecode_hours = timecodetime.split(":")[0]
+                timecode_min = timecodetime.split(":")[1]
+                timecode_sec = timecodetime.split(":")[2]
 
-
-
-
-            # For item checks, the log file will output a "FileLog" string that is parced for content (Thanks P2Ready)
-            if "FileLog" in line:
-
-                #Splits the check from the Timecode string
-                entry = line.split("]: ")[1]
-                print(entry)
-
-                #Let's massage that there string
-                ### This already needs a rework, but it works if strings behave nicely ###
-                if "sent" in entry:
-                    sender = entry.split(" sent ")[0]
-                    entry = entry.split(" sent ")[1] # issue if sender name has "sent" substring
-                    check_temp = entry.split(" (")[-1] # issue if check name has " ("
-                    check = check_temp.split(")")[0]
-                    name_temp = entry.split(" to ")[-1] # issue if check has word "to"
-                    name = name_temp.split(" (")[0]
-                    item = entry.split(" to ")[0]
-                    await ChannelLock.send(
-                        "```Recipient: " + name +
-                        "\nItem: " + item +
-                        "\nSender: " + sender +
-                        "\nCheck: " + check + "```"
-                        )
-                    #Sends sent item to the item queue
-                    SendItemToQueue(name,item,sender,check)
-
-                    #Sends ItemCheck to log
-                    ItemCheck = name  +"||"+ sender +"||"+ item +"||"+ check
-                    LogOutput = timecode +"||"+ ItemCheck +"\n"
-                    o = open(OutputFileLocation, "a")
-                    o.write(LogOutput)
-                    o.close()
-
-                if "found their" in entry:
-                    await ChannelLock.send("```"+entry+"```")
-                    #Sends self-check to log
-                    LogOutput = timecode +"||"+ entry
-                    o = open(OutputFileLocation, "a")
-                    o.write(LogOutput)
-                    o.close()
+                #Buids the timecode
+                timecode = timecode_day +"||"+ timecode_month +"||"+ timecode_year +"||"+ timecode_hours +"||"+ timecode_min +"||"+ timecode_sec
 
 
 
-            # Deathlink messages are gathered and stored in the deathlog for shame purposes.
-            if "DeathLink:" in line:
-                d = open("timecode.txt", "r")
-                DLtimecode = d.read()
-                d.close()
+
+                # For item checks, the log file will output a "FileLog" string that is parced for content (Thanks P2Ready)
+                if "FileLog" in line:
+
+                    #Splits the check from the Timecode string
+                    entry = line.split("]: ")[1]
+                    print(entry)
+
+                    #Let's massage that there string
+                    ### This already needs a rework, but it works if strings behave nicely ###
+                    if "sent" in entry:
+                        sender = entry.split(" sent ")[0]
+                        entry = entry.split(" sent ")[1] # issue if sender name has "sent" substring
+                        check_temp = entry.split(" (")[-1] # issue if check name has " ("
+                        check = check_temp.split(")")[0]
+                        name_temp = entry.split(" to ")[-1] # issue if check has word "to"
+                        name = name_temp.split(" (")[0]
+                        item = entry.split(" to ")[0]
+                        await ChannelLock.send(
+                            "```Recipient: " + name +
+                            "\nItem: " + item +
+                            "\nSender: " + sender +
+                            "\nCheck: " + check + "```"
+                            )
+                        #Sends sent item to the item queue
+                        await SendItemToQueue(name,item,sender,check)
+
+                        #Sends ItemCheck to log
+                        ItemCheck = name  +"||"+ sender +"||"+ item +"||"+ check
+                        LogOutput = timecode +"||"+ ItemCheck +"\n"
+                        o = open(OutputFileLocation, "a")
+                        o.write(LogOutput)
+                        o.close()
+
+                    if "found their" in entry:
+                        await ChannelLock.send("```"+entry+"```")
+                        #Sends self-check to log
+                        LogOutput = timecode +"||"+ entry
+                        o = open(OutputFileLocation, "a")
+                        o.write(LogOutput)
+                        o.close()
 
 
-                if DLtimecode == timecode:
-                    print("skipping death!")
-                else:
-                    deathentry = line.split("]: ")[1]
-                    await ChannelLock.send("**"+ deathentry + "**")
 
-                    #temp Deathlog for Terraria
-                    if "Mami Papi don't fite" in line or "Scycral Arch2" in line or "Muscle Mommy" in line or "Mami Papi" in line:
-                        deathentry = "from IRL Fishing\n"
-
-                    if "Scycral_muse2" in line:
-                        deathentry = "from Scycral_muse2\n"
-
-                    if "Dark Souls III" in line:
-                        deathentry = "from Soul of Cinder\n"
-
-                    if "yogurt_noita" in line:
-                        deathentry = "from yogurt_noita\n"
-
-                    #write deathlink to log
-                    deathentry = deathentry.split("from ")[1]
-                    DeathLogOutput = timecode +"||"+ deathentry
-                    o = open(DeathFileLocation, "a")
-                    o.write(DeathLogOutput)
-                    o.close()
-
-                    d = open("timecode.txt", "w")
-                    d.write(timecode)
+                # Deathlink messages are gathered and stored in the deathlog for shame purposes.
+                if "DeathLink:" in line:
+                    d = open("timecode.txt", "r")
+                    DLtimecode = d.read()
                     d.close()
 
 
-    # Now we scan to the end of the file and store it so we know how far we've read thus far
-    with open(latest_file, 'r') as fp:
-        EndOfFile = len(fp.readlines())
+                    if DLtimecode == timecode:
+                        print("skipping death!")
+                    else:
+                        deathentry = line.split("]: ")[1]
+                        await ChannelLock.send("**"+ deathentry + "**")
 
+                        #temp Deathlog for Terraria
+                        if "Mami Papi don't fite" in line or "Scycral Arch2" in line or "Muscle Mommy" in line or "Mami Papi" in line:
+                            deathentry = "from IRL Fishing\n"
+
+                        if "Scycral_muse2" in line:
+                            deathentry = "from Scycral_muse2\n"
+
+                        if "Dark Souls III" in line:
+                            deathentry = "from Soul of Cinder\n"
+
+                        if "yogurt_noita" in line:
+                            deathentry = "from yogurt_noita\n"
+
+                        #write deathlink to log
+                        deathentry = deathentry.split("from ")[1]
+                        DeathLogOutput = timecode +"||"+ deathentry
+                        o = open(DeathFileLocation, "a")
+                        o.write(DeathLogOutput)
+                        o.close()
+
+                        d = open("timecode.txt", "w")
+                        d.write(timecode)
+                        d.close()
+
+
+        # Now we scan to the end of the file and store it so we know how far we've read thus far
+        with open(latest_file, 'r') as fp:
+            EndOfFile = len(fp.readlines())
+    except:
+        await DebugLock.send('ERROR IN BG_TASK')
 
 # When the user asks, catch them up on checks they're registered for
 ## Yoinks their registration file, scans through it, then find the related ItemQueue file to scan through 
 async def KetchupUser(DMauthor):
-    RegistrationFile = RegistrationDirectory + DMauthor.name + ".csv"
-    if not os.path.isfile(RegistrationFile):
-        await DMauthor.dm_channel.send("You've not registered for a slot : (")
-    else:
-        r = open(RegistrationFile,"r")
-        RegistrationLines = r.readlines()
-        r.close()
-        for reglines in RegistrationLines:
-            ItemQueueFile = ItemQueueDirectory + reglines.strip() + ".csv"
-            if not os.path.isfile(ItemQueueFile):
-                await DMauthor.dm_channel.send("There are no items for " + reglines.strip() + " :/")
-                continue
-            k = open(ItemQueueFile, "r")
-            ItemQueueLines = k.readlines()
-            k.close()
-            os.remove(ItemQueueFile)
+    try:
+        RegistrationFile = RegistrationDirectory + DMauthor.name + ".csv"
+        if not os.path.isfile(RegistrationFile):
+            await DMauthor.dm_channel.send("You've not registered for a slot : (")
+        else:
+            r = open(RegistrationFile,"r")
+            RegistrationLines = r.readlines()
+            r.close()
+            for reglines in RegistrationLines:
+                ItemQueueFile = ItemQueueDirectory + reglines.strip() + ".csv"
+                if not os.path.isfile(ItemQueueFile):
+                    await DMauthor.dm_channel.send("There are no items for " + reglines.strip() + " :/")
+                    continue
+                k = open(ItemQueueFile, "r")
+                ItemQueueLines = k.readlines()
+                k.close()
+                os.remove(ItemQueueFile)
 
-            ketchupmessage = "```You || Item || Sender || Location \n"
-            for line in ItemQueueLines:
-                ketchupmessage = ketchupmessage + line
-                if len(ketchupmessage) > 1500:
-                    ketchupmessage = ketchupmessage + "```"
-                    await DMauthor.dm_channel.send(ketchupmessage)
-                    ketchupmessage = "```"
+                ketchupmessage = "```You || Item || Sender || Location \n"
+                for line in ItemQueueLines:
+                    ketchupmessage = ketchupmessage + line
+                    if len(ketchupmessage) > 1500:
+                        ketchupmessage = ketchupmessage + "```"
+                        await DMauthor.dm_channel.send(ketchupmessage)
+                        ketchupmessage = "```"
 
 
-            ketchupmessage = ketchupmessage + "```"
-            await DMauthor.dm_channel.send(ketchupmessage)
-            
+                ketchupmessage = ketchupmessage + "```"
+                await DMauthor.dm_channel.send(ketchupmessage)
+    except:
+        await DebugLock.send('ERROR IN KETCHMEUP')
 
 # Sends the received item check to the ItemQueue for the slot in question.
-def SendItemToQueue(Recipient, Item, Sender, Check):
-    ItemQueueFile = ItemQueueDirectory + Recipient + ".csv"
-    i = open(ItemQueueFile, "a")
-    ItemWrite = Recipient + "||" + Item + "||" + Sender + "||" + Check +"\n"
-    i.write(ItemWrite)
-    i.close()
+async def SendItemToQueue(Recipient, Item, Sender, Check):
+    try:
+        ItemQueueFile = ItemQueueDirectory + Recipient + ".csv"
+        i = open(ItemQueueFile, "a")
+        ItemWrite = Recipient + "||" + Item + "||" + Sender + "||" + Check +"\n"
+        i.write(ItemWrite)
+        i.close()
+    except:
+        await DebugLock.send('ERROR IN SENDITEMTOQUEUE')
 
 # Counts the number of deaths written to the deathlog and outputs it in bulk to the connected discord channel
 async def CountDeaths():
-    d = open(DeathFileLocation,"r")
-    DeathLines = d.readlines()
-    d.close()
-    deathdict = {}
-    for deathline in DeathLines:
-        DeathUser = deathline.split("||")[6]
-        DeathUser = DeathUser.split("\n")[0]
+    try:
+        d = open(DeathFileLocation,"r")
+        DeathLines = d.readlines()
+        d.close()
+        deathdict = {}
+        for deathline in DeathLines:
+            DeathUser = deathline.split("||")[6]
+            DeathUser = DeathUser.split("\n")[0]
 
-        if not DeathUser in deathdict:
-            deathdict[DeathUser] = 1
-        else:
-            deathdict[DeathUser] = deathdict[DeathUser] + 1
+            if not DeathUser in deathdict:
+                deathdict[DeathUser] = 1
+            else:
+                deathdict[DeathUser] = deathdict[DeathUser] + 1
 
-    deathdict = {key: value for key, value in sorted(deathdict.items())}
-
-
+        deathdict = {key: value for key, value in sorted(deathdict.items())}
 
 
-    deathnames = []
-    deathcounts = []
-    message = "**Death Counter:**\n```"
-    deathkeys = deathdict.keys()
-    for key in deathkeys:
-        deathnames.append(str(key))
-        deathcounts.append(int(deathdict[key]))
-        message = message + "\n" + str(key) + ": " + str(deathdict[key])
-    message = message + '```'
-    await ChannelLock.send(message)
 
-    ### PLOTTING CODE ###
-    with plt.xkcd():
 
-        # Change length of plot long axis based on player count
-        if len(deathnames) >= 20:
-            long_axis=32
-        elif len(deathnames) >= 5:
-            long_axis=16
-        else:
-            long_axis=8
+        deathnames = []
+        deathcounts = []
+        message = "**Death Counter:**\n```"
+        deathkeys = deathdict.keys()
+        for key in deathkeys:
+            deathnames.append(str(key))
+            deathcounts.append(int(deathdict[key]))
+            message = message + "\n" + str(key) + ": " + str(deathdict[key])
+        message = message + '```'
+        await ChannelLock.send(message)
 
-        # Initialize Plot
-        fig = plt.figure(figsize=(long_axis,8))
-        ax = fig.add_subplot(111)
+        ### PLOTTING CODE ###
+        with plt.xkcd():
 
-        # Index the players in order
-        player_index = np.arange(0,len(deathnames),1)
+            # Change length of plot long axis based on player count
+            if len(deathnames) >= 20:
+                long_axis=32
+            elif len(deathnames) >= 5:
+                long_axis=16
+            else:
+                long_axis=8
 
-        # Plot count vs. player index
-        plot = ax.bar(player_index,deathcounts,color='darkorange')
+            # Initialize Plot
+            fig = plt.figure(figsize=(long_axis,8))
+            ax = fig.add_subplot(111)
 
-        # Change "index" label to corresponding player name
-        ax.set_xticks(player_index)
-        ax.set_xticklabels(deathnames,fontsize=20,rotation=-45,ha='left',rotation_mode="anchor")
+            # Index the players in order
+            player_index = np.arange(0,len(deathnames),1)
 
-        # Set y-axis limits to make sure the biggest bar has space for label above it
-        ax.set_ylim(0,max(deathcounts)*1.1)
+            # Plot count vs. player index
+            plot = ax.bar(player_index,deathcounts,color='darkorange')
 
-        # Set y-axis to have integer labels, since this is integer data
-        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.tick_params(axis='y', labelsize=20)
+            # Change "index" label to corresponding player name
+            ax.set_xticks(player_index)
+            ax.set_xticklabels(deathnames,fontsize=20,rotation=-45,ha='left',rotation_mode="anchor")
 
-        # Add labels above bars
-        ax.bar_label(plot,fontsize=20) 
+            # Set y-axis limits to make sure the biggest bar has space for label above it
+            ax.set_ylim(0,max(deathcounts)*1.1)
 
-        # Plot Title
-        ax.set_title('Death Counts',fontsize=28)
+            # Set y-axis to have integer labels, since this is integer data
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.tick_params(axis='y', labelsize=20)
 
-    # Save image and send - any existing plot will be overwritten
-    plt.savefig('DeathPlot.png', bbox_inches="tight")
-    await ChannelLock.send(file=discord.File('DeathPlot.png'))
+            # Add labels above bars
+            ax.bar_label(plot,fontsize=20) 
+
+            # Plot Title
+            ax.set_title('Death Counts',fontsize=28)
+
+        # Save image and send - any existing plot will be overwritten
+        plt.savefig('DeathPlot.png', bbox_inches="tight")
+        await ChannelLock.send(file=discord.File('DeathPlot.png'))
+    except:
+        await DebugLock.send('ERROR DEATHCOUNT')
     
 async def CheckCount():
-    page = requests.get(ArchTrackerURL)
-    soup = BeautifulSoup(page.content, "html.parser")
-    
-    #Yoinks table rows from the checks table
-    tables = soup.find("table",id="checks-table")
-    for slots in tables.find_all('tbody'):
-        rows = slots.find_all('tr')
+    try:
+        page = requests.get(ArchTrackerURL)
+        soup = BeautifulSoup(page.content, "html.parser")
 
-    #Preps check message
-    checkmessage = "```Slot || Game || Status || Checks || % \n"
+        #Yoinks table rows from the checks table
+        tables = soup.find("table",id="checks-table")
+        for slots in tables.find_all('tbody'):
+            rows = slots.find_all('tr')
 
-    #Moves through rows for data
-    for row in rows:
-        slot = (row.find_all('td')[1].text).strip()
-        game = (row.find_all('td')[2].text).strip()
-        status = (row.find_all('td')[3].text).strip()
-        checks = (row.find_all('td')[4].text).strip()
-        percent = (row.find_all('td')[5].text).strip()
-        checkmessage = checkmessage + slot + " || " + game + " || " + status + " || " + checks + " || " + percent + "\n"
-    
-    #Finishes the check message
-    checkmessage = checkmessage + "```"
-    await ChannelLock.send(checkmessage)
+        #Preps check message
+        checkmessage = "```Slot || Game || Status || Checks || % \n"
+
+        #Moves through rows for data
+        for row in rows:
+            slot = (row.find_all('td')[1].text).strip()
+            game = (row.find_all('td')[2].text).strip()
+            status = (row.find_all('td')[3].text).strip()
+            checks = (row.find_all('td')[4].text).strip()
+            percent = (row.find_all('td')[5].text).strip()
+            checkmessage = checkmessage + slot + " || " + game + " || " + status + " || " + checks + " || " + percent + "\n"
+
+        #Finishes the check message
+        checkmessage = checkmessage + "```"
+        await ChannelLock.send(checkmessage)
+    except:
+        await DebugLock.send('ERROR IN CHECKCOUNT')
 
 
 async def BEE():
