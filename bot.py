@@ -29,9 +29,7 @@ ArchPort = os.getenv('ArchipelagoPort')
 ArchLogFiles = os.getcwd() + os.getenv('ArchipelagoClientLogs')
 ArchTrackerURL = os.getenv('ArchipelagoTrackerURL')
 ArchServerURL = os.getenv('ArchipelagoServerURL')
-OutputFileLocation = os.getcwd() + os.getenv('BotLoggingFile')
-DeathFileLocation = os.getcwd() + os.getenv('DeathLoggingFile')
-DeathTimecodeLocation = os.getcwd() + os.getenv('DeathTimecodeFile')
+LoggingDirectory = os.getcwd() + os.getenv('LoggingDirectory')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
 ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 JoinMessage = os.getenv('JoinMessage')
@@ -39,6 +37,11 @@ DebugMode = os.getenv('DebugMode')
 
 # Metadata
 ArchInfo = ArchHost + ':' + ArchPort
+OutputFileLocation = LoggingDirectory + 'BotLog.txt'
+DeathFileLocation = LoggingDirectory + 'DeathLog.txt'
+DeathTimecodeLocation = LoggingDirectory + 'DeathTimecode.txt'
+DeathPlotLocation = LoggingDirectory + 'DeathPlot.png'
+
 
 # Global Variable Declaration
 
@@ -452,8 +455,8 @@ async def CountDeaths():
             ax.set_title('Death Counts',fontsize=28)
 
         # Save image and send - any existing plot will be overwritten
-        plt.savefig('DeathPlot.png', bbox_inches="tight")
-        await ChannelLock.send(file=discord.File('DeathPlot.png'))
+        plt.savefig(DeathPlotLocation, bbox_inches="tight")
+        await ChannelLock.send(file=discord.File(DeathPlotLocation))
     except:
         await DebugLock.send('ERROR DEATHCOUNT')
     
