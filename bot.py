@@ -35,7 +35,7 @@ DeathTimecodeLocation = os.getcwd() + os.getenv('DeathTimecodeFile')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
 ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 JoinMessage = os.getenv('JoinMessage')
-
+DebugMode = os.getenv('DebugMode')
 
 # Metadata
 ArchInfo = ArchHost + ':' + ArchPort
@@ -73,6 +73,7 @@ async def on_message(message):
         if message.author == client.user:
             return
 
+        #=== CORE COMMANDS ===#
         # Connects the bot to the specified channel, then locks that channel in as the main communication method
         if message.content.startswith('$connect'):
             await message.channel.send('Channel connected. Carry on commander.')
@@ -92,28 +93,7 @@ async def on_message(message):
             reassurance.cancel()
             #KeepAlive.cancel()
 
-        # Ping! Pong!
-        if message.content.startswith('$hello'):
-            await message.channel.send('Hello!')
-
-        # Provides debug paths
-        if message.content.startswith('$ArchInfo'):
-            await message.channel.send(ArchInfo)
-            await message.channel.send(ArchTrackerURL)
-            await message.channel.send(ArchServerURL)
-            await message.channel.send(latest_file)
-            await message.channel.send(OutputFileLocation)
-            await message.channel.send(DeathFileLocation)
-            await message.channel.send(RegistrationDirectory)
-            await message.channel.send(ItemQueueDirectory)
-            await message.channel.send(DebugLock)
-
-        # Provides debug log
-        if message.content.startswith('$LogPlease'):
-            info = open(latest_file,"r")
-            MessageContents = info.seek(0, os.SEEK_END)
-            await message.channel.send(MessageContents)  
-
+        #=== PLAYER COMMANDS ===#
         # Registers user for a alot in Archipelago
         if message.content.startswith('$register'):
             ArchSlot = message.content
@@ -147,10 +127,6 @@ async def on_message(message):
             RegistrationFile = RegistrationDirectory + Sender + ".csv"
             os.remove(RegistrationFile)
 
-        # Sometimes we all need to hear it :)
-        if message.content.startswith('$ILoveYou'):
-            await message.channel.send("Thank you.  You make a difference in this world. :)")
-
         # Opens a discord DM with the user, and fires off the Katchmeup process
         if message.content.startswith('$ketchmeup'):
             if (message.author).dm_channel == "None":
@@ -168,8 +144,50 @@ async def on_message(message):
         if message.content.startswith('$checkcount'):
             await CheckCount()
 
+        #=== SPECIAL COMMANDS ===#
+        # Sometimes we all need to hear it :)
+        if message.content.startswith('$ILoveYou'):
+            await message.channel.send("Thank you.  You make a difference in this world. :)")
+
+        # Ping! Pong!
+        if message.content.startswith('$hello'):
+            await message.channel.send('Hello!')
+
+        # Provides debug paths
+        if message.content.startswith('$ArchInfo'):
+            DebugMode = os.getenv('DebugMode')
+            if(DebugMode == "true"):
+                await message.channel.send(ArchInfo)
+                await message.channel.send(ArchTrackerURL)
+                await message.channel.send(ArchServerURL)
+                await message.channel.send(ArchLogFiles)
+                await message.channel.send(latest_file)
+                await message.channel.send(OutputFileLocation)
+                await message.channel.send(DeathFileLocation)
+                await message.channel.send(DeathTimecodeLocation)
+                await message.channel.send(RegistrationDirectory)
+                await message.channel.send(ItemQueueDirectory)
+                await message.channel.send(JoinMessage)
+                await message.channel.send(DebugMode)
+                await message.channel.send(DebugLock)
+            else:
+                await message.channel.send("Debug Mode is disabled.")
+
+        # Provides debug log
+        if message.content.startswith('$LogPlease'):
+            DebugMode = os.getenv('DebugMode')
+            if(DebugMode == "true"):
+                info = open(latest_file,"r")
+                MessageContents = info.seek(0, os.SEEK_END)
+                await message.channel.send(MessageContents)  
+            else:
+                await message.channel.send("Debug Mode is disabled.")
+        
+        #Bees
         if message.content.startswith('$BEE'):
-            await BEE()
+            DebugMode = os.getenv('DebugMode')
+            if(DebugMode == "true"):
+                await BEE()
     except:
         await DebugLock.send('ERROR IN CORE_MESSAGE_READ')
 

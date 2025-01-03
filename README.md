@@ -15,15 +15,21 @@ Discord bridge for Archipelago in python
 |DiscordToken|Your Discord Bot's token|
 |ArchipelagoServer|The URL of the Archipelago server you'd like to connect to|
 |ArchipelagoPort|The port of the Archipelago server you'd like to connect to|
+|ArchipelagoTrackerURL|URL of the tracker you'd like to query|
+|ArchipelagoServerURL|URL of the server you'd like to query|
 |ArchipelagoClientLogs|Directory of the Archipelago CommonClient's logs*|
 |BotLoggingFile|File location the bot will store it's own logs|
 |DeathLoggingFile|File location for the deathlink logs|
+|DeathTimecodeFile|File location for the deathlink timecode buffer|
 |PlayerRegistrationDirectory|Directory of the Player Registration Mappings*|
 |PlayerItemQueueDirectory|Directory that stores player item queues*|
 |JoinMessage|A custom join message (console only) for the bot|
+|DebugMode|Enables extra debug chat/bot options^|
 
 
 **\[*] Ensure directories end in a /**
+
+**\[^] DebugMode can expose unintended system information. Use with care.**
 
 ## Core Dependencies
 
@@ -59,6 +65,7 @@ Edit as you see it.
 |Core Commands|Description|
 |---|---|
 |$connect|Connects the bot to the channel you run the command in, and starts background processes|
+|$DEBUGlink|Connects a special debug channel that will report errors|
 |$disconnect|Disconnects the bot from the channel, and stops background processes|
 
 |Player Commands|Description|
@@ -67,12 +74,18 @@ Edit as you see it.
 |$clearreg|Clears the user's registration file|
 |$ketchmeup|DMs the user all checks in their ItemQueue file, used to catch you up on missed checks|
 |$deathcount|Scans the deathlog and tallies up the current deathcount for each slot|
+|$checkcount|Fetches the current Arch server's progress in simple txt format|
 
 |Debug Commands|Description|
 |---|---|
-|$hello|The bot says hello!|
 |$ILoveYou|We all need to hear this sometimes.|
-|$LogPlease|Outputs Archipelago log length|
-|$ArchInfo|General bot details for debugging .env tables|
+|$hello|The bot says hello!|
+|$ArchInfo|General bot details for debugging .env tables^|
+|$LogPlease|Outputs Archipelago log length^|
+|$BEE|Bzzzzzzzzzzzzzzzzzzzz^|
+
+**\[^] DebugMode only commands**
+**\[^] DebugMode can expose unintended system information. Use with care.**
+
 
   
