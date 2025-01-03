@@ -31,6 +31,7 @@ ArchTrackerURL = os.getenv('ArchipelagoTrackerURL')
 ArchServerURL = os.getenv('ArchipelagoServerURL')
 OutputFileLocation = os.getcwd() + os.getenv('BotLoggingFile')
 DeathFileLocation = os.getcwd() + os.getenv('DeathLoggingFile')
+DeathTimecodeLocation = os.getcwd() + os.getenv('DeathTimecodeFile')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
 ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 JoinMessage = os.getenv('JoinMessage')
@@ -40,7 +41,6 @@ JoinMessage = os.getenv('JoinMessage')
 ArchInfo = ArchHost + ':' + ArchPort
 
 # Global Variable Declaration
-LastDeathTimecodeGL = "0"
 
 # Archipleago Log File Assocication
 ArchLogFiles = ArchLogFiles + "*.txt"
@@ -51,6 +51,17 @@ latest_file = max(list_of_files, key=os.path.getmtime)
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+
+#Logfile Initialization. We need to make sure the log files exist before we start writing to them.
+l = open(DeathFileLocation, "a")
+l.close()
+
+l = open(OutputFileLocation, "a")
+l.close()
+
+l = open(DeathTimecodeLocation, "a")
+l.close()
+
 
 @client.event
 async def on_ready():
@@ -65,8 +76,6 @@ async def on_message(message):
         # Connects the bot to the specified channel, then locks that channel in as the main communication method
         if message.content.startswith('$connect'):
             await message.channel.send('Channel connected. Carry on commander.')
-            global LastDeathTimecode
-            LastDeathTimecode = "0"
             global ChannelLock
             ChannelLock = message.channel
             await SetupFileRead() 
@@ -140,7 +149,7 @@ async def on_message(message):
 
         # Sometimes we all need to hear it :)
         if message.content.startswith('$ILoveYou'):
-            await message.channel.send("Thank you.  You make a diffrence in this world. :)")
+            await message.channel.send("Thank you.  You make a difference in this world. :)")
 
         # Opens a discord DM with the user, and fires off the Katchmeup process
         if message.content.startswith('$ketchmeup'):
@@ -236,9 +245,6 @@ async def background_task():
                 #Buids the timecode
                 timecode = timecode_day +"||"+ timecode_month +"||"+ timecode_year +"||"+ timecode_hours +"||"+ timecode_min +"||"+ timecode_sec
 
-
-
-
                 # For item checks, the log file will output a "FileLog" string that is parced for content (Thanks P2Ready)
                 if "FileLog" in line:
 
@@ -281,16 +287,15 @@ async def background_task():
                         o.close()
 
 
-
                 # Deathlink messages are gathered and stored in the deathlog for shame purposes.
                 if "DeathLink:" in line:
-                    d = open("timecode.txt", "r")
+                    d = open(DeathTimecodeLocation, "r")
                     DLtimecode = d.read()
                     d.close()
 
-
                     if DLtimecode == timecode:
                         print("skipping death!")
+                        await DebugLock.send('skipping double death!')
                     else:
                         deathentry = line.split("]: ")[1]
                         await ChannelLock.send("**"+ deathentry + "**")
@@ -299,15 +304,6 @@ async def background_task():
                         if "Mami Papi don't fite" in line or "Scycral Arch2" in line or "Muscle Mommy" in line or "Mami Papi" in line:
                             deathentry = "from IRL Fishing\n"
 
-                        if "Scycral_muse2" in line:
-                            deathentry = "from Scycral_muse2\n"
-
-                        if "Dark Souls III" in line:
-                            deathentry = "from Soul of Cinder\n"
-
-                        if "yogurt_noita" in line:
-                            deathentry = "from yogurt_noita\n"
-
                         #write deathlink to log
                         deathentry = deathentry.split("from ")[1]
                         DeathLogOutput = timecode +"||"+ deathentry
@@ -315,10 +311,9 @@ async def background_task():
                         o.write(DeathLogOutput)
                         o.close()
 
-                        d = open("timecode.txt", "w")
+                        d = open(DeathTimecodeLocation, "w")
                         d.write(timecode)
                         d.close()
-
 
         # Now we scan to the end of the file and store it so we know how far we've read thus far
         with open(latest_file, 'r') as fp:
@@ -389,10 +384,6 @@ async def CountDeaths():
                 deathdict[DeathUser] = deathdict[DeathUser] + 1
 
         deathdict = {key: value for key, value in sorted(deathdict.items())}
-
-
-
-
         deathnames = []
         deathcounts = []
         message = "**Death Counter:**\n```"
