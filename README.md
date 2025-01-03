@@ -18,9 +18,7 @@ Discord bridge for Archipelago in python
 |ArchipelagoTrackerURL|URL of the tracker you'd like to query|
 |ArchipelagoServerURL|URL of the server you'd like to query|
 |ArchipelagoClientLogs|Directory of the Archipelago CommonClient's logs*|
-|BotLoggingFile|File location the bot will store it's own logs|
-|DeathLoggingFile|File location for the deathlink logs|
-|DeathTimecodeFile|File location for the deathlink timecode buffer|
+|LoggingDirectory|Directory of the bot's own logs*|
 |PlayerRegistrationDirectory|Directory of the Player Registration Mappings*|
 |PlayerItemQueueDirectory|Directory that stores player item queues*|
 |JoinMessage|A custom join message (console only) for the bot|
@@ -32,6 +30,8 @@ Discord bridge for Archipelago in python
 **\[^] DebugMode can expose unintended system information. Use with care.**
 
 ## Core Dependencies
+
+**TODO: redo this or make it automatic, dependenceies outside of a python-vir are a nightmare**
 
 sudo apt install python3-pip
 
@@ -85,6 +85,7 @@ Edit as you see it.
 |$BEE|Bzzzzzzzzzzzzzzzzzzzz^|
 
 **\[^] DebugMode only commands**
+
 **\[^] DebugMode can expose unintended system information. Use with care.**
 
 
