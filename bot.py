@@ -140,6 +140,10 @@ async def on_message(message):
                 await message.author.create_dm()
                 await KetchupUser(message.author)
 
+        if message.content.startswith('$groupcheck'):
+                await message.author.create_dm()
+                await GroupCheck(message.author, message.content)
+
         # Runs the deathcounter message process
         if message.content.startswith('$deathcount'):
             await CountDeaths()
@@ -376,6 +380,31 @@ async def KetchupUser(DMauthor):
                 await DMauthor.dm_channel.send(ketchupmessage)
     except:
         await DebugLock.send('ERROR IN KETCHMEUP')
+
+async def GroupCheck(DMauthor, message):
+    try:
+        game = message.split('$groupcheck ')
+        ItemQueueFile = ItemQueueDirectory + game[1] + ".csv"
+        if not os.path.isfile(ItemQueueFile):
+            await DMauthor.dm_channel.send("There are no items for " + game[1] + " :/")
+        else:
+            k = open(ItemQueueFile, "r")
+            ItemQueueLines = k.readlines()
+            k.close()
+
+            ketchupmessage = "```You || Item || Sender || Location \n"
+            for line in ItemQueueLines:
+                ketchupmessage = ketchupmessage + line
+                if len(ketchupmessage) > 1500:
+                    ketchupmessage = ketchupmessage + "```"
+                    await DMauthor.dm_channel.send(ketchupmessage)
+                    ketchupmessage = "```"
+            ketchupmessage = ketchupmessage + "```"
+            await DMauthor.dm_channel.send(ketchupmessage)
+    except:
+        await DebugLock.send('ERROR IN GROUPCHECK')
+
+
 
 # Sends the received item check to the ItemQueue for the slot in question.
 async def SendItemToQueue(Recipient, Item, Sender, Check):
