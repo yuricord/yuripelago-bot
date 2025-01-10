@@ -381,6 +381,9 @@ async def KetchupUser(DMauthor):
     except:
         await DebugLock.send('ERROR IN KETCHMEUP')
 
+# When the user asks, catch them up on the specified game
+## Yoinks the specified ItemQueue file, scans through it, then sends the contents to the user
+## Does NOT delete the file, as it's assumed the other users will want to read the file as well
 async def GroupCheck(DMauthor, message):
     try:
         game = message.split('$groupcheck ')
@@ -403,8 +406,6 @@ async def GroupCheck(DMauthor, message):
             await DMauthor.dm_channel.send(ketchupmessage)
     except:
         await DebugLock.send('ERROR IN GROUPCHECK')
-
-
 
 # Sends the received item check to the ItemQueue for the slot in question.
 async def SendItemToQueue(Recipient, Item, Sender, Check):
