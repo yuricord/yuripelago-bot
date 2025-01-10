@@ -44,6 +44,19 @@ DeathPlotLocation = LoggingDirectory + 'DeathPlot.png'
 
 
 # Global Variable Declaration
+## Gathers all the players in the Archipelago game
+ActivePlayers = []
+page = requests.get(ArchTrackerURL)
+soup = BeautifulSoup(page.content, "html.parser")
+
+#Yoinks table rows from the checks table
+tables = soup.find("table",id="checks-table")
+for slots in tables.find_all('tbody'):
+    rows = slots.find_all('tr')
+
+#Moves through rows for data
+for row in rows:
+    ActivePlayers.append((row.find_all('td')[1].text).strip())
 
 # Archipleago Log File Assocication
 ArchLogFiles = ArchLogFiles + "*.txt"
@@ -179,6 +192,9 @@ async def on_message(message):
                 await message.channel.send(DebugLock)
             else:
                 await message.channel.send("Debug Mode is disabled.")
+        
+        if message.content.startswith('$ActivePlayers'):
+            await message.channel.send(ActivePlayers)
 
         # Provides debug log
         if message.content.startswith('$LogPlease'):
@@ -325,12 +341,15 @@ async def background_task():
                         deathentry = line.split("]: ")[1]
                         await ChannelLock.send("**"+ deathentry + "**")
 
+                        for slot in ActivePlayers:
+                            if slot in deathentry:
+                                deathentry = slot + "\n"
+
                         #temp Deathlog for Terraria
                         if "Mami Papi don't fite" in line or "Scycral Arch2" in line or "Muscle Mommy" in line or "Mami Papi" in line:
                             deathentry = "from IRL Fishing\n"
 
                         #write deathlink to log
-                        deathentry = deathentry.split("from ")[1]
                         DeathLogOutput = timecode +"||"+ deathentry
                         o = open(DeathFileLocation, "a")
                         o.write(DeathLogOutput)
@@ -343,8 +362,9 @@ async def background_task():
         # Now we scan to the end of the file and store it so we know how far we've read thus far
         with open(latest_file, 'r') as fp:
             EndOfFile = len(fp.readlines())
-    except:
-        await DebugLock.send('ERROR IN BG_TASK')
+    except Exception as e:
+        dbmessage = "```ERROR IN BACKGROUND_TASK\n" + str(e) + "```"
+        await DebugLock.send(dbmessage)
 
 # When the user asks, catch them up on checks they're registered for
 ## Yoinks their registration file, scans through it, then find the related ItemQueue file to scan through 
