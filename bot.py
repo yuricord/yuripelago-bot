@@ -49,12 +49,12 @@ ActivePlayers = []
 page = requests.get(ArchTrackerURL)
 soup = BeautifulSoup(page.content, "html.parser")
 
-#Yoinks table rows from the checks table
+###Yoinks table rows from the checks table
 tables = soup.find("table",id="checks-table")
 for slots in tables.find_all('tbody'):
     rows = slots.find_all('tr')
 
-#Moves through rows for data
+###Moves through rows for data
 for row in rows:
     ActivePlayers.append((row.find_all('td')[1].text).strip())
 
@@ -88,6 +88,15 @@ async def on_message(message):
     try:
         if message.author == client.user:
             return
+        
+        #Universal special character replacment.
+        message.content = message.content.replace("’","'")
+
+        DebugMode = os.getenv('DebugMode')
+        if(DebugMode == "true"):
+            print(message.content)
+            print(message.author)
+            print(message.channel)
 
         #=== CORE COMMANDS ===#
         # Connects the bot to the specified channel, then locks that channel in as the main communication method
