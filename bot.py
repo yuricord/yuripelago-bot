@@ -400,17 +400,46 @@ async def KetchupUser(DMauthor):
                 k.close()
                 os.remove(ItemQueueFile)
 
-                ketchupmessage = "```You || Item || Sender || Location \n"
+                YouWidth = 0
+                ItemWidth = 0
+                SenderWidth = 0
+                YouArray = [0]
+                ItemArray = [0]
+                SenderArray = [0]
+
                 for line in ItemQueueLines:
-                    ketchupmessage = ketchupmessage + line
-                    if len(ketchupmessage) > 1500:
+                    YouArray.append(len(line.split("||")[0]))
+                    ItemArray.append(len(line.split("||")[1]))
+                    SenderArray.append(len(line.split("||")[2]))
+                
+                YouArray.sort(reverse=True)
+                ItemArray.sort(reverse=True)
+                SenderArray.sort(reverse=True)
+
+                YouWidth = YouArray[0]
+                ItemWidth = ItemArray[0]
+                SenderWidth = SenderArray[0]
+
+                You = "You"
+                Item = "Item"
+                Sender = "Sender"
+                Location = "Location"
+
+                ketchupmessage = "```" + You.ljust(YouWidth) + " || " + Item.ljust(ItemWidth) + " || " + Sender.ljust(SenderWidth) + " || " + Location + "\n"
+                for line in ItemQueueLines:
+                    You = line.split("||")[0].strip()
+                    Item = line.split("||")[1].strip()
+                    Sender = line.split("||")[2].strip()
+                    Location = line.split("||")[3].strip()
+                    ketchupmessage = ketchupmessage + You.ljust(YouWidth) + " || " + Item.ljust(ItemWidth) + " || " + Sender.ljust(SenderWidth) + " || " + Location + "\n"
+                    
+                    if len(ketchupmessage) > 1900:
                         ketchupmessage = ketchupmessage + "```"
                         await DMauthor.dm_channel.send(ketchupmessage)
                         ketchupmessage = "```"
-
-
                 ketchupmessage = ketchupmessage + "```"
                 await DMauthor.dm_channel.send(ketchupmessage)
+
     except:
         await DebugLock.send('ERROR IN KETCHMEUP')
 
@@ -431,7 +460,7 @@ async def GroupCheck(DMauthor, message):
             ketchupmessage = "```You || Item || Sender || Location \n"
             for line in ItemQueueLines:
                 ketchupmessage = ketchupmessage + line
-                if len(ketchupmessage) > 1500:
+                if len(ketchupmessage) > 1900:
                     ketchupmessage = ketchupmessage + "```"
                     await DMauthor.dm_channel.send(ketchupmessage)
                     ketchupmessage = "```"
@@ -533,8 +562,14 @@ async def CheckCount():
         for slots in tables.find_all('tbody'):
             rows = slots.find_all('tr')
 
-        #Preps check message
-        checkmessage = "```Slot || Game || Status || Checks || % \n"
+        SlotWidth = 0
+        GameWidth = 0
+        StatusWidth = 0
+        ChecksWidth = 0
+        SlotArray = [0]
+        GameArray = [0]
+        StatusArray = [0]
+        ChecksArray = [0]
 
         #Moves through rows for data
         for row in rows:
@@ -542,8 +577,38 @@ async def CheckCount():
             game = (row.find_all('td')[2].text).strip()
             status = (row.find_all('td')[3].text).strip()
             checks = (row.find_all('td')[4].text).strip()
+            
+            SlotArray.append(len(slot))
+            GameArray.append(len(game))
+            StatusArray.append(len(status))
+            ChecksArray.append(len(checks))
+
+        SlotArray.sort(reverse=True)
+        GameArray.sort(reverse=True)
+        StatusArray.sort(reverse=True)
+        ChecksArray.sort(reverse=True)
+
+        SlotWidth = SlotArray[0]
+        GameWidth = GameArray[0]
+        StatusWidth = StatusArray[0]
+        ChecksWidth = ChecksArray[0]
+
+        slot = "Slot"
+        game = "Game"
+        status = "Status"
+        checks = "Checks"
+        percent = "%"
+
+        #Preps check message
+        checkmessage = "```" + slot.ljust(SlotWidth) + " || " + game.ljust(GameWidth) + " || " + checks.ljust(ChecksWidth) + " || " + percent +"\n"
+
+        for row in rows:
+            slot = (row.find_all('td')[1].text).strip()
+            game = (row.find_all('td')[2].text).strip()
+            status = (row.find_all('td')[3].text).strip()
+            checks = (row.find_all('td')[4].text).strip()
             percent = (row.find_all('td')[5].text).strip()
-            checkmessage = checkmessage + slot + " || " + game + " || " + status + " || " + checks + " || " + percent + "\n"
+            checkmessage = checkmessage + slot.ljust(SlotWidth) + " || " + game.ljust(GameWidth) + " || " + checks.ljust(ChecksWidth) + " || " + percent + "\n"
 
         #Finishes the check message
         checkmessage = checkmessage + "```"
