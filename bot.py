@@ -41,6 +41,7 @@ OutputFileLocation = LoggingDirectory + 'BotLog.txt'
 DeathFileLocation = LoggingDirectory + 'DeathLog.txt'
 DeathTimecodeLocation = LoggingDirectory + 'DeathTimecode.txt'
 DeathPlotLocation = LoggingDirectory + 'DeathPlot.png'
+CheckPlotLocation = LoggingDirectory + 'CheckPlot.png'
 
 
 # Global Variable Declaration
@@ -172,6 +173,9 @@ async def on_message(message):
 
         if message.content.startswith('$checkcount'):
             await CheckCount()
+
+        if message.content.startswith('$checkgraph'):
+            await CheckGraph()
 
         #=== SPECIAL COMMANDS ===#
         # Sometimes we all need to hear it :)
@@ -546,6 +550,79 @@ async def CheckCount():
         await ChannelLock.send(checkmessage)
     except:
         await DebugLock.send('ERROR IN CHECKCOUNT')
+
+async def CheckGraph():
+    try:
+        page = requests.get(ArchTrackerURL)
+        soup = BeautifulSoup(page.content, "html.parser")
+
+        #Yoinks table rows from the checks table
+        tables = soup.find("table",id="checks-table")
+        for slots in tables.find_all('tbody'):
+            rows = slots.find_all('tr')
+
+        GameState = {}
+        #Moves through rows for data
+        for row in rows:
+            slot = (row.find_all('td')[1].text).strip()
+            game = (row.find_all('td')[2].text).strip()
+            status = (row.find_all('td')[3].text).strip()
+            checks = (row.find_all('td')[4].text).strip()
+            percent = (row.find_all('td')[5].text).strip()
+            GameState[slot] = percent
+        
+        GameState = {key: value for key, value in sorted(GameState.items())}
+        GameNames = []
+        GameCounts = []
+        deathkeys = GameState.keys()
+        for key in deathkeys:
+            GameNames.append(str(key))
+            GameCounts.append(float(GameState[key]))
+
+        ### PLOTTING CODE ###
+        with plt.xkcd():
+
+            # Change length of plot long axis based on player count
+            if len(GameNames) >= 20:
+                long_axis=32
+            elif len(GameNames) >= 5:
+                long_axis=16
+            else:
+                long_axis=8
+
+            # Initialize Plot
+            fig = plt.figure(figsize=(long_axis,8))
+            ax = fig.add_subplot(111)
+
+            # Index the players in order
+            player_index = np.arange(0,len(GameNames),1)
+
+            # Plot count vs. player index
+            plot = ax.bar(player_index,GameCounts,color='darkorange')
+
+            # Change "index" label to corresponding player name
+            ax.set_xticks(player_index)
+            ax.set_xticklabels(GameNames,fontsize=20,rotation=-45,ha='left',rotation_mode="anchor")
+
+            # Set y-axis limits to make sure the biggest bar has space for label above it
+            ax.set_ylim(0,max(GameCounts)*1.1)
+
+            # Set y-axis to have integer labels, since this is integer data
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.tick_params(axis='y', labelsize=20)
+
+            # Add labels above bars
+            ax.bar_label(plot,fontsize=20) 
+
+            # Plot Title
+            ax.set_title('Completion Percentage',fontsize=28)
+
+        # Save image and send - any existing plot will be overwritten
+        plt.savefig(CheckPlotLocation, bbox_inches="tight")
+        await ChannelLock.send(file=discord.File(CheckPlotLocation))
+
+    except:
+        await DebugLock.send('ERROR IN CHECKGRAPH')
 
 
 async def BEE():
