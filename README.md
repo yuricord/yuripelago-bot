@@ -13,6 +13,7 @@ Discord bridge for Archipelago in python
 |Key|Description|
 |---|---|
 |DiscordToken|Your Discord Bot's token|
+|DiscordBroadcastChannel|Channel ID for live-check purposes|
 |ArchipelagoServer|The URL of the Archipelago server you'd like to connect to|
 |ArchipelagoPort|The port of the Archipelago server you'd like to connect to|
 |ArchipelagoTrackerURL|URL of the tracker you'd like to query|
@@ -23,6 +24,8 @@ Discord bridge for Archipelago in python
 |PlayerItemQueueDirectory|Directory that stores player item queues*|
 |JoinMessage|A custom join message (console only) for the bot|
 |DebugMode|Enables extra debug chat/bot options^|
+|DiscordDebugChannel|Channel ID for debug purposes|
+|AutomaticSetup|Automaticly starts background processes when bot is turned on|
 
 
 **\[*] Ensure directories end in a /**
@@ -64,9 +67,8 @@ Edit as you see it.
 
 |Core Commands|Description|
 |---|---|
-|$connect|Connects the bot to the channel you run the command in, and starts background processes|
-|$DEBUGlink|Connects a special debug channel that will report errors|
-|$disconnect|Disconnects the bot from the channel, and stops background processes|
+|$connect|Starts background processes|
+|$disconnect|Stops background processes|
 
 |Player Commands|Description|
 |---|---|
@@ -76,6 +78,7 @@ Edit as you see it.
 |$groupcheck <slot>|DMs the user all checks in the slot's ItemQueue file, used to catch up on group games|
 |$deathcount|Scans the deathlog and tallies up the current deathcount for each slot|
 |$checkcount|Fetches the current Arch server's progress in simple txt format|
+|$checkgraph|Plots the current Arch progress in a picture|
 
 |Debug Commands|Description|
 |---|---|

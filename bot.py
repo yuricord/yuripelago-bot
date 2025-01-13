@@ -20,10 +20,10 @@ from bs4 import BeautifulSoup
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-
 #.env Config Setup + Metadata
 load_dotenv()
 DiscordToken = os.getenv('DiscordToken')
+DiscordBroadcastChannel = int(os.getenv('DiscordBroadcastChannel'))
 ArchHost = os.getenv('ArchipelagoServer')
 ArchPort = os.getenv('ArchipelagoPort')
 ArchLogFiles = os.getcwd() + os.getenv('ArchipelagoClientLogs')
@@ -34,6 +34,8 @@ RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
 ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 JoinMessage = os.getenv('JoinMessage')
 DebugMode = os.getenv('DebugMode')
+DiscordDebugChannel = int(os.getenv('DiscordDebugChannel'))
+AutomaticSetup = os.getenv('AutomaticSetup')
 
 # Metadata
 ArchInfo = ArchHost + ':' + ArchPort
@@ -45,17 +47,14 @@ CheckPlotLocation = LoggingDirectory + 'CheckPlot.png'
 
 
 # Global Variable Declaration
-## Gathers all the players in the Archipelago game
 ActivePlayers = []
+
+## Active Player Population
 page = requests.get(ArchTrackerURL)
 soup = BeautifulSoup(page.content, "html.parser")
-
-###Yoinks table rows from the checks table
 tables = soup.find("table",id="checks-table")
 for slots in tables.find_all('tbody'):
     rows = slots.find_all('tr')
-
-###Moves through rows for data
 for row in rows:
     ActivePlayers.append((row.find_all('td')[1].text).strip())
 
@@ -83,6 +82,14 @@ l.close()
 @client.event
 async def on_ready():
     print(JoinMessage," - ", client.user)
+    global ChannelLock
+    ChannelLock = client.get_channel(DiscordBroadcastChannel)
+    await ChannelLock.send('Bot connected. Battle control - Online.')
+    global DebugLock
+    DebugLock = client.get_channel(DiscordDebugChannel)
+    await DebugLock.send('Bot connected. Debug control - Online.')
+    if AutomaticSetup == 'true':
+        await SetupFileRead()
 
 @client.event
 async def on_message(message):
@@ -95,24 +102,14 @@ async def on_message(message):
 
         DebugMode = os.getenv('DebugMode')
         if(DebugMode == "true"):
-            print(message.content)
-            print(message.author)
-            print(message.channel)
+            print(message.content, " - ", message.author, " - ", message.channel)
 
         #=== CORE COMMANDS ===#
-        # Connects the bot to the specified channel, then locks that channel in as the main communication method
+        # Starts background processes
         if message.content.startswith('$connect'):
-            await message.channel.send('Channel connected. Carry on commander.')
-            global ChannelLock
-            ChannelLock = message.channel
-            await SetupFileRead() 
+            await SetupFileRead()
 
-        if message.content.startswith('$DEBUGlink'):
-            await message.channel.send('Linked debug channel')
-            global DebugLock
-            DebugLock = message.channel
-
-        # Disconnects the bot, and stops the scheduled tasks.
+        # Stops background processes
         if message.content.startswith('$disconnect'):
             await message.channel.send('Channel disconnected. Battle control - Offline.')
             background_task.cancel()
