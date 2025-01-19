@@ -164,6 +164,10 @@ async def on_message(message):
                 await message.author.create_dm()
                 await GroupCheck(message.author, message.content)
 
+        if message.content.startswith('$hints'):
+            await message.author.create_dm()
+            await HintList(message.author)
+
         # Runs the deathcounter message process
         if message.content.startswith('$deathcount'):
             await CountDeaths()
@@ -685,6 +689,113 @@ async def CheckGraph():
 
     except:
         await DebugLock.send('ERROR IN CHECKGRAPH')
+
+async def HintList(player):
+    try:
+        page = requests.get(ArchTrackerURL)
+        soup = BeautifulSoup(page.content, "html.parser")
+
+        #Yoinks table rows from the checks table
+        tables = soup.find("table",id="hints-table")
+        for slots in tables.find_all('tbody'):
+            rows = slots.find_all('tr')
+
+
+        RegistrationFile = RegistrationDirectory + player.name + ".csv"
+        if not os.path.isfile(RegistrationFile):
+            await player.dm_channel.send("You've not registered for a slot : (")
+        else:
+            r = open(RegistrationFile,"r")
+            RegistrationLines = r.readlines()
+            r.close()
+            for reglines in RegistrationLines:
+
+                message = "**Here are all of the hints assigned to "+ reglines.strip() +":**"
+                await player.dm_channel.send(message)
+
+                FinderWidth = 0
+                ReceiverWidth = 0
+                ItemWidth = 0
+                LocationWidth = 0
+                GameWidth = 0
+                EntrenceWidth = 0
+                FinderArray = [0]
+                ReceiverArray = [0]
+                ItemArray = [0]
+                LocationArray = [0]
+                GameArray = [0]
+                EntrenceArray = [0]
+
+                #Moves through rows for data
+                for row in rows:
+                    found = (row.find_all('td')[6].text).strip()
+                    if(found == "✔"):
+                        continue
+                    
+                    finder = (row.find_all('td')[0].text).strip()
+                    receiver = (row.find_all('td')[1].text).strip()
+                    item = (row.find_all('td')[2].text).strip()
+                    location = (row.find_all('td')[3].text).strip()
+                    game = (row.find_all('td')[4].text).strip()
+                    entrence = (row.find_all('td')[5].text).strip()
+
+                    if(reglines.strip() == finder):
+                        FinderArray.append(len(finder))
+                        ReceiverArray.append(len(receiver))
+                        ItemArray.append(len(item))
+                        LocationArray.append(len(location))
+                        GameArray.append(len(game))
+                        EntrenceArray.append(len(entrence))
+
+                FinderArray.sort(reverse=True)
+                ReceiverArray.sort(reverse=True)
+                ItemArray.sort(reverse=True)
+                LocationArray.sort(reverse=True)
+                GameArray.sort(reverse=True)
+                EntrenceArray.sort(reverse=True)
+
+                FinderWidth = FinderArray[0]
+                ReceiverWidth = ReceiverArray[0]
+                ItemWidth = ItemArray[0]
+                LocationWidth = LocationArray[0]
+                GameWidth = GameArray[0]
+                EntrenceWidth = EntrenceArray[0]
+
+                finder = "Finder"
+                receiver = "Receiver"
+                item = "Item"
+                location = "Location"
+                game = "Game"
+                entrence = "Entrance"
+
+                #Preps check message
+                checkmessage = "```" + finder.ljust(FinderWidth) + " || " + receiver.ljust(ReceiverWidth) + " || " + item.ljust(ItemWidth) + " || " + location.ljust(LocationWidth) + " || " + game.ljust(GameWidth) + " || " + entrence +"\n"
+                for row in rows:
+                    found = (row.find_all('td')[6].text).strip()
+                    if(found == "✔"):
+                        continue
+
+                    finder = (row.find_all('td')[0].text).strip()
+                    receiver = (row.find_all('td')[1].text).strip()
+                    item = (row.find_all('td')[2].text).strip()
+                    location = (row.find_all('td')[3].text).strip()
+                    game = (row.find_all('td')[4].text).strip()
+                    entrence = (row.find_all('td')[5].text).strip()
+
+                    if(reglines.strip() == finder):
+                        checkmessage = checkmessage + finder.ljust(FinderWidth) + " || " + receiver.ljust(ReceiverWidth) + " || " + item.ljust(ItemWidth) + " || " + location.ljust(LocationWidth) + " || " + game.ljust(GameWidth) + " || " + entrence +"\n"
+
+                    if len(checkmessage) > 1500:
+                        checkmessage = checkmessage + "```"
+                        await player.dm_channel.send(checkmessage)
+                        checkmessage = "```"
+
+                # Caps off the message
+                checkmessage = checkmessage + "```"
+                await player.dm_channel.send(checkmessage)
+
+    except:
+        await DebugLock.send('ERROR IN HINTLIST')
 
 
 async def BEE():
