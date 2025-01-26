@@ -11,6 +11,7 @@ import glob
 from dotenv import load_dotenv
 import numpy as np
 import random
+import json
 
 #Scrape Dependencies
 import requests
@@ -24,6 +25,7 @@ from matplotlib.ticker import MaxNLocator
 load_dotenv()
 DiscordToken = os.getenv('DiscordToken')
 DiscordBroadcastChannel = int(os.getenv('DiscordBroadcastChannel'))
+DiscordAlertUserID = os.getenv('DiscordAlertUserID')
 ArchHost = os.getenv('ArchipelagoServer')
 ArchPort = os.getenv('ArchipelagoPort')
 ArchLogFiles = os.getcwd() + os.getenv('ArchipelagoClientLogs')
@@ -114,7 +116,6 @@ async def on_message(message):
             await message.channel.send('Channel disconnected. Battle control - Offline.')
             background_task.cancel()
             reassurance.cancel()
-            #KeepAlive.cancel()
 
         #=== PLAYER COMMANDS ===#
         # Registers user for a alot in Archipelago
@@ -132,7 +133,6 @@ async def on_message(message):
             # Get contents of the registration file and save it to 'line'
             o = open(RegistrationFile, "r")
             line = o.read()
-            #print(line) #Used to debug registration commands
             o.close()
 
             # Check the registration file for ArchSlot, if they are not registered; do so. If they already are; tell them.
@@ -191,40 +191,27 @@ async def on_message(message):
         if message.content.startswith('$ArchInfo'):
             DebugMode = os.getenv('DebugMode')
             if(DebugMode == "true"):
-                await message.channel.send(ArchInfo)
-                await message.channel.send(ArchTrackerURL)
-                await message.channel.send(ArchServerURL)
-                await message.channel.send(ArchLogFiles)
-                await message.channel.send(latest_file)
-                await message.channel.send(OutputFileLocation)
-                await message.channel.send(DeathFileLocation)
-                await message.channel.send(DeathTimecodeLocation)
-                await message.channel.send(RegistrationDirectory)
-                await message.channel.send(ItemQueueDirectory)
-                await message.channel.send(JoinMessage)
-                await message.channel.send(DebugMode)
-                await message.channel.send(DebugLock)
+                print(DiscordBroadcastChannel)
+                print(DiscordAlertUserID)
+                print(ArchInfo)
+                print(ArchTrackerURL)
+                print(ArchServerURL)
+                print(ArchLogFiles)
+                print(latest_file)
+                print(OutputFileLocation)
+                print(DeathFileLocation)
+                print(DeathTimecodeLocation)
+                print(RegistrationDirectory)
+                print(ItemQueueDirectory)
+                print(JoinMessage)
+                print(DiscordDebugChannel)
+                print(AutomaticSetup)
+                print(DebugMode)
+                print(ChannelLock)
+                print(DebugLock)
             else:
                 await message.channel.send("Debug Mode is disabled.")
-        
-        if message.content.startswith('$ActivePlayers'):
-            await message.channel.send(ActivePlayers)
 
-        # Provides debug log
-        if message.content.startswith('$LogPlease'):
-            DebugMode = os.getenv('DebugMode')
-            if(DebugMode == "true"):
-                info = open(latest_file,"r")
-                MessageContents = info.seek(0, os.SEEK_END)
-                await message.channel.send(MessageContents)  
-            else:
-                await message.channel.send("Debug Mode is disabled.")
-        
-        #Bees
-        if message.content.startswith('$BEE'):
-            DebugMode = os.getenv('DebugMode')
-            if(DebugMode == "true"):
-                await BEE()
     except:
         await DebugLock.send('ERROR IN CORE_MESSAGE_READ')
 
@@ -238,6 +225,7 @@ async def SetupFileRead():
         background_task.start()
         reassurance.start()
         #KeepAlive.start()
+        CheckArchHost.start()
     except:
         await DebugLock.send('ERROR IN SETUPFILEREAD')
 
@@ -797,11 +785,27 @@ async def HintList(player):
     except:
         await DebugLock.send('ERROR IN HINTLIST')
 
+@tasks.loop(seconds=120)
+async def CheckArchHost():
+    try:
+        ArchRoomID = ArchServerURL.split("/")
+        RoomAPI = "https://archipelago.gg/api/room_status/"+ArchRoomID[4]
+        RoomPage = requests.get(RoomAPI)
+        RoomData = json.loads(RoomPage.content)
 
-async def BEE():
-    message = "```NARRATOR:(Black screen with text; The sound of buzzing bees can be heard)According to all known laws of aviation,:there is no way a beeshould be able to fly. :Its wings are too small to getits fat little body off the ground. :The bee, of course, flies anyway :because bees dont carewhat humans think is impossible.BARRY BENSON:(Barry is picking out a shirt)Yellow, black. Yellow, black.Yellow, black. Yellow, black. :Ooh, black and yellow!Lets shake it up a little.JANET BENSON:Barry! Breakfast is ready!BARRY:Coming! :Hang on a second.(Barry uses his antenna like a phone) :Hello?ADAM FLAYMAN:(Through phone)- Barry?BARRY:- Adam?ADAM:- Can you believe this is happening?BARRY:- I cant. Ill pick you up.(Barry flies down the stairs) :MARTIN BENSON:Looking sharp.JANET:Use the stairs. Your fatherpaid good money for those.BARRY:Sorry. Im excited.MARTIN:Heres the graduate.Were very proud of you, son. :A perfect report card, all Bs.JANET:Very proud.(Rubs Barrys hair)BARRY=Ma! I got a thing going here.JANET:- You got lint on your fuzz.BARRY:- Ow! Thats me!JANET:- Wave to us! Well be in row 118,000.- Bye!(Barry flies out the door)JANET:Barry, I told you,stop flying in the house!(Barry drives through the hive,and is waved at by Adam who is reading anewspaper)BARRY==- Hey, Adam.ADAM:- Hey, Barry.(Adam gets in Barrys car) :- Is that fuzz gel?BARRY:- A little. Special day, graduation.ADAM:Never thought Id make it.(Barry pulls away from the house and continues driving)BARRY:Three days grade school,three days high school...ADAM:Those were awkward.BARRY:Three days college. Im glad I tooka day and hitchhiked around the hive.ADAM==You did come back different.(Barry and Adam pass by Artie, who is jogging)ARTIE:- Hi, Barry!BARRY:- Artie, growing a mustache? Looks good.ADAM:- Hear about Frankie?BARRY:- Yeah.ADAM==- You going to the funeral?BARRY:- No, Im not going to his funeral. :Everybody knows,sting someone, you die. :Dont waste it on a squirrel.Such a hothead.1000000000000000000000000```"
-    await ChannelLock.send(message)
-    
+        cond = str(RoomData["last_port"])
+        if(cond == ArchPort):
+            print("Port Check Passed")
+        else:
+            print("Port Check Failed")
+            print(RoomData["last_port"])
+            print(ArchPort)
+            message = "Port Check Failed <@"+DiscordAlertUserID+">"
+            await ChannelLock.send(message)
+            await DebugLock.send(message)
+
+    except:
+        await DebugLock.send('ERROR IN CHECKARCHHOST')
 
 
 client.run(DiscordToken)
