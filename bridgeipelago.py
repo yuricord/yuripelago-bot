@@ -189,17 +189,6 @@ class TrackerClient:
         self.wsapp.send(json.dumps([message]))
 
 def Tracker():
-    #"""Example usage utilizing configuration via arguments"""
-    #parser = argparse.ArgumentParser(description='Start the TrackerClient.')
-    #parser.add_argument('--server_uri', type=str, default='localhost', help='The server URI (default: localhost)')
-    #parser.add_argument('--port', type=str, default='38281', help='The server port (default: 38281)')
-    #parser.add_argument('--slot_name', type=str, default='tracker_bot', help='The slot name (default: tracker_bot)')
-    #parser.add_argument('--verbose_logging', action='store_true', help='Enable verbose logging')
-
-    #args = parser.parse_args()
-
-    #server_uri = f'wss://{args.server_uri}' # May need to use 'wss' when connecting to Archipelago.gg hosted servers
-
     client = TrackerClient(
         server_uri=ArchHost,
         port=ArchPort,
@@ -278,7 +267,6 @@ async def on_message(message):
     
     if message.content.startswith('$archinfo'):
         await Command_ArchInfo(message)
-
 
 @tasks.loop(seconds=120)
 async def CheckArchHost():
