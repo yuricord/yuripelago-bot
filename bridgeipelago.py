@@ -38,6 +38,7 @@ DiscordBroadcastChannel = int(os.getenv('DiscordBroadcastChannel'))
 DiscordAlertUserID = os.getenv('DiscordAlertUserID')
 ArchHost = os.getenv('ArchipelagoServer')
 ArchPort = os.getenv('ArchipelagoPort')
+ArchipelagoBotSlot = os.getenv('ArchipelagoBotSlot')
 ArchTrackerURL = os.getenv('ArchipelagoTrackerURL')
 ArchServerURL = os.getenv('ArchipelagoServerURL')
 LoggingDirectory = os.getcwd() + os.getenv('LoggingDirectory')
@@ -88,7 +89,6 @@ l.close()
 
 l = open(DeathTimecodeLocation, "a")
 l.close()
-
 
 ## ARCHIPELAGO TRACKER CLIENT + CORE FUNCTION
 class TrackerClient:
@@ -203,7 +203,7 @@ def Tracker():
     client = TrackerClient(
         server_uri=ArchHost,
         port=ArchPort,
-        slot_name='Quasky_OOT1',
+        slot_name=ArchipelagoBotSlot,
         verbose_logging=False,
         on_chat_send=lambda args : chat_queue.put(args),
         on_death_link=lambda args : death_queue.put(args),
@@ -227,7 +227,7 @@ async def on_ready():
     #Start background tasks
     CheckArchHost.start()
     ProcessItemQueue.start()
-    #ProcessDeathQueue.start()
+    ProcessDeathQueue.start()
     ProcessChatQueue.start()
 
     print(JoinMessage)
@@ -290,7 +290,7 @@ async def CheckArchHost():
 
         cond = str(RoomData["last_port"])
         if(cond == ArchPort):
-            print("Port Check Passed")
+            return
         else:
             print("Port Check Failed")
             print(RoomData["last_port"])
@@ -301,41 +301,60 @@ async def CheckArchHost():
     except:
         await DebugChannel.send('ERROR IN CHECKARCHHOST')
 
-
-
-##########
-### Broken :( gotta fix it
-##########
 @tasks.loop(seconds=1)
 async def ProcessItemQueue():
     if item_queue.empty():
         return
     else:
+        timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
         itemmessage = item_queue.get()
         game = LookupGame(itemmessage['data'][0]['text'])
         name = LookupSlot(itemmessage['data'][0]['text'])
         item = LookupItem(game,itemmessage['data'][2]['text'])
-        print(game)
-        print(name)
-        print(item)
+
         #if message has "found their" it's a self check, output and dont log
-        query = itemmessage['data'][1]['text']
-        query = str(query)
-        if query in str(itemmessage['data'][1]['text']):   
-            print("|||",itemmessage['data'][4]['text'])
+        query = itemmessage['data'][1]['text']      
+        if query == " found their ":   
             location = LookupLocation(game,itemmessage['data'][4]['text'])
-            print(location)
             message = "```" + name + " found their " + item + "\nCheck: " + location + "```"
+            ItemCheckLogMessage = name + "||" + item + "||" + name + "||" + location + "\n"
+            BotLogMessage = timecode + "||" + ItemCheckLogMessage
+            o = open(OutputFileLocation, "a")
+            o.write(BotLogMessage)
+            o.close()
+
             await SendMainChannelMessage(message)
         else:
             recipient = LookupSlot(itemmessage['data'][4]['text'])
             location = LookupLocation(game,itemmessage['data'][6]['text'])
             message = "```" + name + " sent " + item + " to " + recipient + "\nCheck: " + location + "```"
+            ItemCheckLogMessage = recipient + "||" + item + "||" + name + "||" + location + "\n"
+            BotLogMessage = timecode + "||" + ItemCheckLogMessage
+            o = open(OutputFileLocation, "a")
+            o.write(BotLogMessage)
+            o.close()
+
+            ItemQueueFile = ItemQueueDirectory + recipient + ".csv"
+            i = open(ItemQueueFile, "a")
+            i.write(ItemCheckLogMessage)
+            i.close()
+
             await SendMainChannelMessage(message)
 
 @tasks.loop(seconds=1)
 async def ProcessDeathQueue():
-    print('Processing Death Queue')
+    if death_queue.empty():
+        return
+    else:
+        chatmessage = death_queue.get()
+        timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
+        DeathMessage = "**Deathlink received from: " + chatmessage['data']['source'] + "**"
+        DeathLogMessage = timecode + "||" + chatmessage['data']['source'] + "\n"
+        o = open(DeathFileLocation, "a")
+        o.write(DeathLogMessage)
+        o.close()
+
+        await SendMainChannelMessage(DeathMessage)
 
 @tasks.loop(seconds=1)
 async def ProcessChatQueue():
