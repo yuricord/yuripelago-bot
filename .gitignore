@@ -4,6 +4,7 @@ ItemQueue/
 RegistrationData/
 logs/
 *.png
+ArchData/
 
 
 # Byte-compiled / optimized / DLL files
