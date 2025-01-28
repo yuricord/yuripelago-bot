@@ -102,6 +102,7 @@ class TrackerClient:
         ROOM_INFO = 'RoomInfo'
         DATA_PACKAGE = 'DataPackage'
         CONNECTED = 'Connected'
+        CONNECTIONREFUSED = 'ConnectionRefused'
 
     def __init__(
         self,
@@ -154,6 +155,11 @@ class TrackerClient:
             WriteDataPackage(args)
         elif cmd == self.MessageCommand.CONNECTED.value:
             WriteConnectionPackage(args)
+        elif cmd == self.MessageCommand.CONNECTIONREFUSED.value:
+            print("Connection refused by server - check your slot name / port / whatever, and try again.")
+            print(args)
+            seppuku_queue.put(args)
+            exit()
         elif cmd == self.MessageCommand.PRINT_JSON.value and args.get('type') == 'ItemSend':
             if self.on_item_send:
                 self.on_item_send(args)
@@ -861,12 +867,19 @@ def LookupGame(slot):
 item_queue = Queue()
 death_queue = Queue()
 chat_queue = Queue()
+seppuku_queue = Queue()
 
 ## Threadded async functions
 TrackerThread = Process(target=Tracker)
 TrackerThread.start()
 
 time.sleep(3)
+
+if seppuku_queue.empty():
+    print("Loading Arch Data...")
+else:
+    print("Seppuku Initiated - Goodbye Friend")
+    exit(1)
 
 with open(ArchGameDump, 'r') as f:
     DumpJSON = json.load(f)
