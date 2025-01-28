@@ -89,6 +89,14 @@ intents = discord.Intents.default()
 intents.message_content = True
 DiscordClient = discord.Client(intents=intents)
 
+# Make sure the arch data directory exists before we start creating log files
+if not os.path.exists(ArchDataDirectory):
+    os.makedirs(ArchDataDirectory)
+
+# Make sure the logging directory exists before we start creating log files
+if not os.path.exists(LoggingDirectory):
+    os.makedirs(LoggingDirectory)
+
 #Logfile Initialization. We need to make sure the log files exist before we start writing to them.
 l = open(DeathFileLocation, "a")
 l.close()
@@ -890,8 +898,18 @@ else:
     print("Seppuku Initiated - Goodbye Friend")
     exit(1)
 
+# Wait for game dump to be created by tracker client
+while not os.path.exists(ArchGameDump):
+    print(f"waiting for {ArchGameDump} to be created on when data package is received")
+    time.sleep(2)
+
 with open(ArchGameDump, 'r') as f:
     DumpJSON = json.load(f)
+
+# Wait for connection dump to be created by tracker client
+while not os.path.exists(ArchConnectionDump):
+    print(f"waiting for {ArchConnectionDump} to be created on room connection")
+    time.sleep(2)
 
 with open(ArchConnectionDump, 'r') as f:
     ConnectionPackage = json.load(f)
