@@ -78,6 +78,12 @@ python3 -m pip install beautifulsoup4
 
 python3 -m pip install matplotlib
 
+#### Or, install with requirements.txt
+
+```
+pip install -r requirements.txt
+```
+
 ## Commands
 
 |Core Commands|Description|

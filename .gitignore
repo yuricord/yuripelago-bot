@@ -1,5 +1,4 @@
 # Custom Exclusions
-*.txt
 ItemQueue/
 RegistrationData/
 logs/
