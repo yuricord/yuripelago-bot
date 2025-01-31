@@ -56,6 +56,7 @@ ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 ArchDataDirectory = os.getcwd() + os.getenv('ArchipelagoDataDirectory')
 JoinMessage = os.getenv('JoinMessage')
 DebugMode = os.getenv('DebugMode')
+DiscordJoinOnly = os.getenv('DiscordJoinOnly')
 DiscordDebugChannel = int(os.getenv('DiscordDebugChannel'))
 AutomaticSetup = os.getenv('AutomaticSetup')
 
@@ -76,13 +77,14 @@ DumpJSON = []
 ConnectionPackage = []
 
 ## Active Player Population
-page = requests.get(ArchTrackerURL)
-soup = BeautifulSoup(page.content, "html.parser")
-tables = soup.find("table",id="checks-table")
-for slots in tables.find_all('tbody'):
-    rows = slots.find_all('tr')
-for row in rows:
-    ActivePlayers.append((row.find_all('td')[1].text).strip())
+if(DiscordJoinOnly == "false"):
+    page = requests.get(ArchTrackerURL)
+    soup = BeautifulSoup(page.content, "html.parser")
+    tables = soup.find("table",id="checks-table")
+    for slots in tables.find_all('tbody'):
+        rows = slots.find_all('tr')
+    for row in rows:
+        ActivePlayers.append((row.find_all('td')[1].text).strip())
 
 #Discord Bot Initialization
 intents = discord.Intents.default()
@@ -234,6 +236,9 @@ async def on_ready():
 @DiscordClient.event
 async def on_message(message):
     if message.author == DiscordClient.user:
+        return
+    
+    if message.channel.id != MainChannel.id:
         return
     
     # Registers user for a alot in Archipelago
@@ -869,43 +874,45 @@ death_queue = Queue()
 chat_queue = Queue()
 seppuku_queue = Queue()
 
-# Start the tracker client
-tracker_client = TrackerClient(
-    server_uri=ArchHost,
-    port=ArchPort,
-    slot_name=ArchipelagoBotSlot,
-    verbose_logging=False,
-    on_chat_send=lambda args : chat_queue.put(args),
-    on_death_link=lambda args : death_queue.put(args),
-    on_item_send=lambda args : item_queue.put(args)
-)
-tracker_client.start()
+## Threadded async functions
+if(DiscordJoinOnly == "false"):
+    # Start the tracker client
+    tracker_client = TrackerClient(
+        server_uri=ArchHost,
+        port=ArchPort,
+        slot_name=ArchipelagoBotSlot,
+        verbose_logging=False,
+        on_chat_send=lambda args : chat_queue.put(args),
+        on_death_link=lambda args : death_queue.put(args),
+        on_item_send=lambda args : item_queue.put(args)
+    )
+    tracker_client.start()
 
-time.sleep(3)
+    time.sleep(3)
 
-if seppuku_queue.empty():
-    print("Loading Arch Data...")
-else:
-    print("Seppuku Initiated - Goodbye Friend")
-    exit(1)
+    if seppuku_queue.empty():
+        print("Loading Arch Data...")
+    else:
+        print("Seppuku Initiated - Goodbye Friend")
+        exit(1)
 
-# Wait for game dump to be created by tracker client
-while not os.path.exists(ArchGameDump):
-    print(f"waiting for {ArchGameDump} to be created on when data package is received")
-    time.sleep(2)
+    # Wait for game dump to be created by tracker client
+    while not os.path.exists(ArchGameDump):
+        print(f"waiting for {ArchGameDump} to be created on when data package is received")
+        time.sleep(2)
 
-with open(ArchGameDump, 'r') as f:
-    DumpJSON = json.load(f)
+    with open(ArchGameDump, 'r') as f:
+        DumpJSON = json.load(f)
 
-# Wait for connection dump to be created by tracker client
-while not os.path.exists(ArchConnectionDump):
-    print(f"waiting for {ArchConnectionDump} to be created on room connection")
-    time.sleep(2)
+    # Wait for connection dump to be created by tracker client
+    while not os.path.exists(ArchConnectionDump):
+        print(f"waiting for {ArchConnectionDump} to be created on room connection")
+        time.sleep(2)
 
-with open(ArchConnectionDump, 'r') as f:
-    ConnectionPackage = json.load(f)
+    with open(ArchConnectionDump, 'r') as f:
+        ConnectionPackage = json.load(f)
 
-time.sleep(3)
+    time.sleep(3)
 
 # The run method is blocking, so it will keep the program running
 DiscordClient.run(DiscordToken)
