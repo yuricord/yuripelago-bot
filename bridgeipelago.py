@@ -25,7 +25,7 @@ from bs4 import BeautifulSoup
 
 #Threading Dependencies
 from threading import Thread
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
 
 #Plotting Dependencies
 from matplotlib import pyplot as plt
@@ -90,6 +90,14 @@ if(DiscordJoinOnly == "false"):
 intents = discord.Intents.default()
 intents.message_content = True
 DiscordClient = discord.Client(intents=intents)
+
+# Make sure the arch data directory exists before we start creating log files
+if not os.path.exists(ArchDataDirectory):
+    os.makedirs(ArchDataDirectory)
+
+# Make sure the logging directory exists before we start creating log files
+if not os.path.exists(LoggingDirectory):
+    os.makedirs(LoggingDirectory)
 
 #Logfile Initialization. We need to make sure the log files exist before we start writing to them.
 l = open(DeathFileLocation, "a")
@@ -204,20 +212,6 @@ class TrackerClient:
 
     def send_message(self, message: dict) -> None:
         self.wsapp.send(json.dumps([message]))
-
-def Tracker():
-    client = TrackerClient(
-        server_uri=ArchHost,
-        port=ArchPort,
-        slot_name=ArchipelagoBotSlot,
-        verbose_logging=False,
-        on_chat_send=lambda args : chat_queue.put(args),
-        on_death_link=lambda args : death_queue.put(args),
-        on_item_send=lambda args : item_queue.put(args)
-    )
-
-    client.start()
-    client.socket_thread.join() # Enter the WebSocketApp thread to prevent script from closing immediately
 
 
 ## DISCORD EVENT HANDLERS + CORE FUNTION
@@ -837,9 +831,6 @@ async def Command_ArchInfo(message):
     else:
         await message.channel.send("Debug Mode is disabled.")
 
-def Discord():
-    DiscordClient.run(DiscordToken)
-
 ## HELPER FUNCTIONS
 def WriteDataPackage(data):
     with open(ArchDataDump, 'w') as f:
@@ -885,8 +876,17 @@ seppuku_queue = Queue()
 
 ## Threadded async functions
 if(DiscordJoinOnly == "false"):
-    TrackerThread = Process(target=Tracker)
-    TrackerThread.start()
+    # Start the tracker client
+    tracker_client = TrackerClient(
+        server_uri=ArchHost,
+        port=ArchPort,
+        slot_name=ArchipelagoBotSlot,
+        verbose_logging=False,
+        on_chat_send=lambda args : chat_queue.put(args),
+        on_death_link=lambda args : death_queue.put(args),
+        on_item_send=lambda args : item_queue.put(args)
+    )
+    tracker_client.start()
 
     time.sleep(3)
 
@@ -896,21 +896,23 @@ if(DiscordJoinOnly == "false"):
         print("Seppuku Initiated - Goodbye Friend")
         exit(1)
 
+    # Wait for game dump to be created by tracker client
+    while not os.path.exists(ArchGameDump):
+        print(f"waiting for {ArchGameDump} to be created on when data package is received")
+        time.sleep(2)
+
     with open(ArchGameDump, 'r') as f:
         DumpJSON = json.load(f)
+
+    # Wait for connection dump to be created by tracker client
+    while not os.path.exists(ArchConnectionDump):
+        print(f"waiting for {ArchConnectionDump} to be created on room connection")
+        time.sleep(2)
 
     with open(ArchConnectionDump, 'r') as f:
         ConnectionPackage = json.load(f)
 
     time.sleep(3)
 
-DiscordThread = Process(target=Discord)
-DiscordThread.start()
-
-## Gotta keep the bot running!
-while True:
-    time.sleep(1)
-
-
-
-
+# The run method is blocking, so it will keep the program running
+DiscordClient.run(DiscordToken)
