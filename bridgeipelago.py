@@ -56,6 +56,7 @@ ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
 ArchDataDirectory = os.getcwd() + os.getenv('ArchipelagoDataDirectory')
 JoinMessage = os.getenv('JoinMessage')
 DebugMode = os.getenv('DebugMode')
+DiscordJoinOnly = os.getenv('DiscordJoinOnly')
 DiscordDebugChannel = int(os.getenv('DiscordDebugChannel'))
 AutomaticSetup = os.getenv('AutomaticSetup')
 
@@ -76,13 +77,14 @@ DumpJSON = []
 ConnectionPackage = []
 
 ## Active Player Population
-page = requests.get(ArchTrackerURL)
-soup = BeautifulSoup(page.content, "html.parser")
-tables = soup.find("table",id="checks-table")
-for slots in tables.find_all('tbody'):
-    rows = slots.find_all('tr')
-for row in rows:
-    ActivePlayers.append((row.find_all('td')[1].text).strip())
+if(DiscordJoinOnly == "false"):
+    page = requests.get(ArchTrackerURL)
+    soup = BeautifulSoup(page.content, "html.parser")
+    tables = soup.find("table",id="checks-table")
+    for slots in tables.find_all('tbody'):
+        rows = slots.find_all('tr')
+    for row in rows:
+        ActivePlayers.append((row.find_all('td')[1].text).strip())
 
 #Discord Bot Initialization
 intents = discord.Intents.default()
@@ -240,6 +242,9 @@ async def on_ready():
 @DiscordClient.event
 async def on_message(message):
     if message.author == DiscordClient.user:
+        return
+    
+    if message.channel.id != MainChannel.id:
         return
     
     # Registers user for a alot in Archipelago
@@ -879,24 +884,25 @@ chat_queue = Queue()
 seppuku_queue = Queue()
 
 ## Threadded async functions
-TrackerThread = Process(target=Tracker)
-TrackerThread.start()
+if(DiscordJoinOnly == "false"):
+    TrackerThread = Process(target=Tracker)
+    TrackerThread.start()
 
-time.sleep(3)
+    time.sleep(3)
 
-if seppuku_queue.empty():
-    print("Loading Arch Data...")
-else:
-    print("Seppuku Initiated - Goodbye Friend")
-    exit(1)
+    if seppuku_queue.empty():
+        print("Loading Arch Data...")
+    else:
+        print("Seppuku Initiated - Goodbye Friend")
+        exit(1)
 
-with open(ArchGameDump, 'r') as f:
-    DumpJSON = json.load(f)
+    with open(ArchGameDump, 'r') as f:
+        DumpJSON = json.load(f)
 
-with open(ArchConnectionDump, 'r') as f:
-    ConnectionPackage = json.load(f)
+    with open(ArchConnectionDump, 'r') as f:
+        ConnectionPackage = json.load(f)
 
-time.sleep(3)
+    time.sleep(3)
 
 DiscordThread = Process(target=Discord)
 DiscordThread.start()
