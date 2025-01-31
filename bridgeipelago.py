@@ -301,7 +301,7 @@ async def CheckArchHost():
             await MainChannel.send(message)
             await DebugChannel.send(message)
     except:
-        await DebugChannel.send('ERROR IN CHECKARCHHOST')
+        await DebugChannel.send("ERROR IN CHECKARCHHOST <@"+DiscordAlertUserID+">")
 
 @tasks.loop(seconds=1)
 async def ProcessItemQueue():
@@ -463,7 +463,7 @@ async def Command_KetchMeUp(message):
                 ketchupmessage = ketchupmessage + "```"
                 await message.author.dm_channel.send(ketchupmessage)
     except:
-        await DebugChannel.send('ERROR IN KETCHMEUP')
+        await DebugChannel.send("ERROR IN KETCHMEUP <@"+DiscordAlertUserID+">")
 
 async def Command_GroupCheck(DMauthor, message):
     try:
@@ -486,7 +486,7 @@ async def Command_GroupCheck(DMauthor, message):
             ketchupmessage = ketchupmessage + "```"
             await DMauthor.dm_channel.send(ketchupmessage)
     except:
-        await DebugChannel.send('ERROR IN GROUPCHECK')
+        await DebugChannel.send("ERROR IN GROUPCHECK <@"+DiscordAlertUserID+">")
 
 async def Command_Hints(player):
     try:
@@ -593,7 +593,7 @@ async def Command_Hints(player):
                 checkmessage = checkmessage + "```"
                 await player.dm_channel.send(checkmessage)
     except:
-        await DebugChannel.send('ERROR IN HINTLIST')
+        await DebugChannel.send("ERROR IN HINTLIST <@"+DiscordAlertUserID+">")
 
 async def Command_DeathCount():
     try:
@@ -664,7 +664,7 @@ async def Command_DeathCount():
         plt.savefig(DeathPlotLocation, bbox_inches="tight")
         await MainChannel.send(file=discord.File(DeathPlotLocation))
     except:
-        await DebugChannel.send('ERROR DEATHCOUNT')
+        await DebugChannel.send("ERROR DEATHCOUNT <@"+DiscordAlertUserID+">")
 
 async def Command_CheckCount():
     try:
@@ -728,7 +728,7 @@ async def Command_CheckCount():
         checkmessage = checkmessage + "```"
         await MainChannel.send(checkmessage)
     except:
-        await DebugChannel.send('ERROR IN CHECKCOUNT')
+        await DebugChannel.send("ERROR IN CHECKCOUNT <@"+DiscordAlertUserID+">")
 
 async def Command_CheckGraph():
     try:
@@ -801,7 +801,7 @@ async def Command_CheckGraph():
         await MainChannel.send(file=discord.File(CheckPlotLocation))
 
     except:
-        await DebugChannel.send('ERROR IN CHECKGRAPH')
+        await DebugChannel.send("ERROR IN CHECKGRAPH <@"+DiscordAlertUserID+">")
 
 async def Command_ILoveYou(message):
     await message.channel.send("Thank you.  You make a difference in this world. :)")
