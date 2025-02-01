@@ -70,6 +70,7 @@ CheckPlotLocation = LoggingDirectory + 'CheckPlot.png'
 ArchDataDump = ArchDataDirectory + 'ArchDataDump.json'
 ArchGameDump = ArchDataDirectory + 'ArchGameDump.json'
 ArchConnectionDump = ArchDataDirectory + 'ArchConnectionDump.json'
+ArchRawData = ArchDataDirectory + 'ArchRawData.txt'
 
 # Global Variable Declaration
 ActivePlayers = []
@@ -133,6 +134,8 @@ class TrackerClient:
         on_item_send: callable = None, 
         on_chat_send: callable = None, 
         on_datapackage: callable = None, 
+        on_error: callable = None, 
+        on_close: callable = None, 
         verbose_logging: bool = False,
         **kwargs: typing.Any
     ) -> None:
@@ -143,6 +146,8 @@ class TrackerClient:
         self.on_item_send = on_item_send
         self.on_chat_send = on_chat_send
         self.on_datapackage = on_datapackage
+        self.on_error = on_error
+        self.on_close = on_close
         self.verbose_logging = verbose_logging
         self.web_socket_app_kwargs = kwargs
         self.uuid: int = uuid.getnode()
@@ -213,19 +218,25 @@ class TrackerClient:
     def send_message(self, message: dict) -> None:
         self.wsapp.send(json.dumps([message]))
 
+    def on_error(self, error) -> None:
+        print(error)
+
+    def on_close(self, close_status_code, close_message) -> None:
+        print(close_status_code, "===", close_message)
+
 
 ## DISCORD EVENT HANDLERS + CORE FUNTION
 @DiscordClient.event
 async def on_ready():
     global MainChannel
     MainChannel = DiscordClient.get_channel(DiscordBroadcastChannel)
-    await MainChannel.send('Bot connected. Battle control - Online.')
+    #await MainChannel.send('Bot connected. Battle control - Online.')
     global DebugChannel
     DebugChannel = DiscordClient.get_channel(DiscordDebugChannel)
     await DebugChannel.send('Bot connected. Debug control - Online.')
 
     #Start background tasks
-    CheckArchHost.start()
+    #CheckArchHost.start()
     ProcessItemQueue.start()
     ProcessDeathQueue.start()
     ProcessChatQueue.start()
@@ -286,7 +297,8 @@ async def on_message(message):
 async def CheckArchHost():
     try:
         ArchRoomID = ArchServerURL.split("/")
-        RoomAPI = "https://archipelago.gg/api/room_status/"+ArchRoomID[4]
+        ArchAPIUEL = ArchServerURL.split("/room/")
+        RoomAPI = ArchAPIUEL[0]+"/api/room_status/"+ArchRoomID[4]
         RoomPage = requests.get(RoomAPI)
         RoomData = json.loads(RoomPage.content)
 
@@ -305,43 +317,51 @@ async def CheckArchHost():
 
 @tasks.loop(seconds=1)
 async def ProcessItemQueue():
-    if item_queue.empty():
-        return
-    else:
-        timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
-        itemmessage = item_queue.get()
-        game = LookupGame(itemmessage['data'][0]['text'])
-        name = LookupSlot(itemmessage['data'][0]['text'])
-        item = LookupItem(game,itemmessage['data'][2]['text'])
-
-        #if message has "found their" it's a self check, output and dont log
-        query = itemmessage['data'][1]['text']      
-        if query == " found their ":   
-            location = LookupLocation(game,itemmessage['data'][4]['text'])
-            message = "```" + name + " found their " + item + "\nCheck: " + location + "```"
-            ItemCheckLogMessage = name + "||" + item + "||" + name + "||" + location + "\n"
-            BotLogMessage = timecode + "||" + ItemCheckLogMessage
-            o = open(OutputFileLocation, "a")
-            o.write(BotLogMessage)
-            o.close()
-
-            await SendMainChannelMessage(message)
+    try:
+        if item_queue.empty():
+            return
         else:
-            recipient = LookupSlot(itemmessage['data'][4]['text'])
-            location = LookupLocation(game,itemmessage['data'][6]['text'])
-            message = "```" + name + " sent " + item + " to " + recipient + "\nCheck: " + location + "```"
-            ItemCheckLogMessage = recipient + "||" + item + "||" + name + "||" + location + "\n"
-            BotLogMessage = timecode + "||" + ItemCheckLogMessage
-            o = open(OutputFileLocation, "a")
-            o.write(BotLogMessage)
-            o.close()
+            timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
+            itemmessage = item_queue.get()
+            game = str(LookupGame(itemmessage['data'][0]['text']))
+            name = str(LookupSlot(itemmessage['data'][0]['text']))
+            item = str(LookupItem(game,itemmessage['data'][2]['text']))
+            query = game + "||" + name  + "||" + item
+            await SendDebugChannelMessage(query)
 
-            ItemQueueFile = ItemQueueDirectory + recipient + ".csv"
-            i = open(ItemQueueFile, "a")
-            i.write(ItemCheckLogMessage)
-            i.close()
 
-            await SendMainChannelMessage(message)
+            #if message has "found their" it's a self check, output and dont log
+            query = itemmessage['data'][1]['text']      
+            if query == " found their ":   
+                location = str(LookupLocation(game,itemmessage['data'][4]['text']))
+                message = "```" + name + " found their " + item + "\nCheck: " + location + "```"
+                ItemCheckLogMessage = name + "||" + item + "||" + name + "||" + location + "\n"
+                BotLogMessage = timecode + "||" + ItemCheckLogMessage
+                o = open(OutputFileLocation, "a")
+                o.write(BotLogMessage)
+                o.close()
+
+                await SendMainChannelMessage(message)
+            else:
+                recgame = str(LookupGame(itemmessage['data'][4]['text']))
+                item = str(LookupItem(recgame,itemmessage['data'][2]['text']))
+                recipient = str(LookupSlot(itemmessage['data'][4]['text']))
+                location = str(LookupLocation(game,itemmessage['data'][6]['text']))
+                message = "```" + name + " sent " + item + " to " + recipient + "\nCheck: " + location + "```"
+                ItemCheckLogMessage = recipient + "||" + item + "||" + name + "||" + location + "\n"
+                BotLogMessage = timecode + "||" + ItemCheckLogMessage
+                o = open(OutputFileLocation, "a")
+                o.write(BotLogMessage)
+                o.close()
+
+                ItemQueueFile = ItemQueueDirectory + recipient + ".csv"
+                i = open(ItemQueueFile, "a")
+                i.write(ItemCheckLogMessage)
+                i.close()
+
+                await SendMainChannelMessage(message)
+    except:
+        await SendDebugChannelMessage("Error in item queue")
 
 @tasks.loop(seconds=1)
 async def ProcessDeathQueue():
@@ -723,11 +743,17 @@ async def Command_CheckCount():
             checks = (row.find_all('td')[4].text).strip()
             percent = (row.find_all('td')[5].text).strip()
             checkmessage = checkmessage + slot.ljust(SlotWidth) + " || " + game.ljust(GameWidth) + " || " + checks.ljust(ChecksWidth) + " || " + percent + "\n"
+            if len(checkmessage) > 1900:
+                checkmessage = checkmessage + "```"
+                await MainChannel.send(checkmessage)
+                checkmessage = "```"
 
         #Finishes the check message
         checkmessage = checkmessage + "```"
+        print(checkmessage)
         await MainChannel.send(checkmessage)
-    except:
+    except Exception as e:
+        print(e)
         await DebugChannel.send("ERROR IN CHECKCOUNT <@"+DiscordAlertUserID+">")
 
 async def Command_CheckGraph():
@@ -852,21 +878,25 @@ def LookupItem(game,id):
     for key in DumpJSON[game]['item_name_to_id']:
         if str(DumpJSON[game]['item_name_to_id'][key]) == str(id):
             return str(key)
+    return str("NULL")
     
 def LookupLocation(game,id):
     for key in DumpJSON[game]['location_name_to_id']:
         if str(DumpJSON[game]['location_name_to_id'][key]) == str(id):
             return str(key)
+    return str("NULL")
 
 def LookupSlot(slot):
     for key in ConnectionPackage['slot_info']:
         if key == slot:
             return str(ConnectionPackage['slot_info'][key]['name'])
+    return str("NULL")
 
 def LookupGame(slot):
     for key in ConnectionPackage['slot_info']:
         if key == slot:
             return str(ConnectionPackage['slot_info'][key]['game'])
+    return str("NULL")
 
 ## Three main queues for processing data from the Archipelago Tracker to the bot
 item_queue = Queue()
@@ -881,7 +911,7 @@ if(DiscordJoinOnly == "false"):
         server_uri=ArchHost,
         port=ArchPort,
         slot_name=ArchipelagoBotSlot,
-        verbose_logging=False,
+        verbose_logging=True,
         on_chat_send=lambda args : chat_queue.put(args),
         on_death_link=lambda args : death_queue.put(args),
         on_item_send=lambda args : item_queue.put(args)
