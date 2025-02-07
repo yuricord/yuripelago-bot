@@ -51,6 +51,8 @@ ArchPort = os.getenv('ArchipelagoPort')
 ArchipelagoBotSlot = os.getenv('ArchipelagoBotSlot')
 ArchTrackerURL = os.getenv('ArchipelagoTrackerURL')
 ArchServerURL = os.getenv('ArchipelagoServerURL')
+SpoilTraps = os.getenv('BotItemSpoilTraps')
+ItemFilterLevel = int(os.getenv('BotItemFilterLevel'))
 LoggingDirectory = os.getcwd() + os.getenv('LoggingDirectory')
 RegistrationDirectory = os.getcwd() + os.getenv('PlayerRegistrationDirectory')
 ItemQueueDirectory = os.getcwd() + os.getenv('PlayerItemQueueDirectory')
@@ -354,6 +356,7 @@ async def ProcessItemQueue():
                 o = open(OutputFileLocation, "a")
                 o.write(BotLogMessage)
                 o.close()
+
             elif query == " sent ":
                 name = str(LookupSlot(itemmessage['data'][0]['text']))
                 game = str(LookupGame(itemmessage['data'][0]['text']))
@@ -370,18 +373,30 @@ async def ProcessItemQueue():
                 o.write(BotLogMessage)
                 o.close()
 
-                ItemQueueFile = ItemQueueDirectory + recipient + ".csv"
-                i = open(ItemQueueFile, "a")
-                i.write(ItemCheckLogMessage)
-                i.close()
+                if int(itemclass) == 4 and SpoilTraps == 'true':
+                    ItemQueueFile = ItemQueueDirectory + recipient + ".csv"
+                    i = open(ItemQueueFile, "a")
+                    i.write(ItemCheckLogMessage)
+                    i.close()
+                elif int(itemclass) != 4:
+                    ItemQueueFile = ItemQueueDirectory + recipient + ".csv"
+                    i = open(ItemQueueFile, "a")
+                    i.write(ItemCheckLogMessage)
+                    i.close()
             else:
                 message = "Unknown Item Send :("
-                print("Unknown Item send :(")
-                await SendDebugChannelMessage("Unknown Item send :(")
+                print(message)
+                await SendDebugChannelMessage(message)
 
+            if int(itemclass) == 4 and SpoilTraps == 'true':
+                await SendMainChannelMessage(message)
+            elif int(itemclass) != 4 and ItemFilter(int(itemclass)):
+                await SendMainChannelMessage(message)
+            else:
+                #In Theory, this should only be called when the two above conditions are not met
+                #So we call this dummy function to escape the async call.
+                await CancelProcess()
 
-
-            await SendMainChannelMessage(message)
     except Exception as e:
         print(e)
         await SendDebugChannelMessage("Error In Item Queue Process")
@@ -921,6 +936,25 @@ def LookupGame(slot):
             return str(ConnectionPackage['slot_info'][key]['game'])
     return str("NULL")
 
+def ItemFilter(itmclass):
+    if ItemFilterLevel == 2:
+        if itmclass == 1:
+            return True
+        else:
+            return False
+    elif ItemFilterLevel == 1:
+        if itmclass == 1 or itmclass == 2:
+            return True
+        else:
+            return False
+    elif ItemFilterLevel == 0:
+        return True
+    else:
+        return True
+
+async def CancelProcess():
+    return 69420
+
 def Discord():
     DiscordClient.run(DiscordToken)
 
@@ -938,7 +972,7 @@ if(DiscordJoinOnly == "false"):
         server_uri=ArchHost,
         port=ArchPort,
         slot_name=ArchipelagoBotSlot,
-        verbose_logging=True,
+        verbose_logging=False,
         on_chat_send=lambda args : chat_queue.put(args),
         on_death_link=lambda args : death_queue.put(args),
         on_item_send=lambda args : item_queue.put(args)
