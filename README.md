@@ -43,6 +43,13 @@ You'll see the bot connect in your Discord channel and join the Archipelago game
 |ArchipelagoBotSlot|The name of the slot you'd like the bot to use when connecting to archipelago|
 |ArchipelagoTrackerURL|URL of the tracker you'd like to query|
 |ArchipelagoServerURL|URL of the server you'd like to query|
+|**Item Filter Config**||
+|BotItemSpoilTraps|The Bot will spoil traps by posting them in chat and ketchmeup&|
+|BotItemFilterLevel|Sets the bot filter level 0 - 1 - 2, to exclude items from discord posts&|
+||All items are still be queued for ketchmeup|
+||2 - Only Logical Progression Items|
+||1 - Logical + Useful items|
+||0 - Logical + Useful + Normal items|
 |**Advanced Config**||
 |LoggingDirectory|Directory of the bot's own logs*|
 |PlayerRegistrationDirectory|Directory of the Player Registration Mappings*|
@@ -53,6 +60,8 @@ You'll see the bot connect in your Discord channel and join the Archipelago game
 |DebugMode|Enables extra debug chat/bot options^|
 
 **\[%] For group IDs, ensure the '&' character is at the beggining of the ID** 
+
+**\[&] Items will still be logged in the BotLog**
 
 **\[*] Ensure directories end in a /**
 

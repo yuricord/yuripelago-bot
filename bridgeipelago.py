@@ -338,31 +338,32 @@ async def ProcessItemQueue():
         else:
             timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
             itemmessage = item_queue.get()
-            game = str(LookupGame(itemmessage['data'][0]['text']))
-            name = str(LookupSlot(itemmessage['data'][0]['text']))
-            item = str(LookupItem(game,itemmessage['data'][2]['text']))
-            query = game + "||" + name  + "||" + item
-            await SendDebugChannelMessage(query)
-
 
             #if message has "found their" it's a self check, output and dont log
             query = itemmessage['data'][1]['text']      
-            if query == " found their ":   
+            if query == " found their ":
+                game = str(LookupGame(itemmessage['data'][0]['text']))
+                name = str(LookupSlot(itemmessage['data'][0]['text']))
+                item = str(LookupItem(game,itemmessage['data'][2]['text']))
+                itemclass = str(itemmessage['data'][2]['flags'])
                 location = str(LookupLocation(game,itemmessage['data'][4]['text']))
-                message = "```" + name + " found their " + item + "\nCheck: " + location + "```"
+
+                message = "```" + name + " found their " + item + "\nCheck: " + location + "\nClass: "+itemclass+"```"
                 ItemCheckLogMessage = name + "||" + item + "||" + name + "||" + location + "\n"
                 BotLogMessage = timecode + "||" + ItemCheckLogMessage
                 o = open(OutputFileLocation, "a")
                 o.write(BotLogMessage)
                 o.close()
-
-                await SendMainChannelMessage(message)
-            else:
+            elif query == " sent ":
+                name = str(LookupSlot(itemmessage['data'][0]['text']))
+                game = str(LookupGame(itemmessage['data'][0]['text']))
                 recgame = str(LookupGame(itemmessage['data'][4]['text']))
                 item = str(LookupItem(recgame,itemmessage['data'][2]['text']))
+                itemclass = str(itemmessage['data'][2]['flags'])
                 recipient = str(LookupSlot(itemmessage['data'][4]['text']))
                 location = str(LookupLocation(game,itemmessage['data'][6]['text']))
-                message = "```" + name + " sent " + item + " to " + recipient + "\nCheck: " + location + "```"
+
+                message = "```" + name + " sent " + item + " to " + recipient + "\nCheck: " + location + "\nClass: "+itemclass+"```"
                 ItemCheckLogMessage = recipient + "||" + item + "||" + name + "||" + location + "\n"
                 BotLogMessage = timecode + "||" + ItemCheckLogMessage
                 o = open(OutputFileLocation, "a")
@@ -373,10 +374,17 @@ async def ProcessItemQueue():
                 i = open(ItemQueueFile, "a")
                 i.write(ItemCheckLogMessage)
                 i.close()
+            else:
+                message = "Unknown Item Send :("
+                print("Unknown Item send :(")
+                await SendDebugChannelMessage("Unknown Item send :(")
 
-                await SendMainChannelMessage(message)
-    except:
-        await SendDebugChannelMessage("Error in item queue")
+
+
+            await SendMainChannelMessage(message)
+    except Exception as e:
+        print(e)
+        await SendDebugChannelMessage("Error In Item Queue Process")
 
 @tasks.loop(seconds=1)
 async def ProcessDeathQueue():
@@ -930,7 +938,7 @@ if(DiscordJoinOnly == "false"):
         server_uri=ArchHost,
         port=ArchPort,
         slot_name=ArchipelagoBotSlot,
-        verbose_logging=False,
+        verbose_logging=True,
         on_chat_send=lambda args : chat_queue.put(args),
         on_death_link=lambda args : death_queue.put(args),
         on_item_send=lambda args : item_queue.put(args)
