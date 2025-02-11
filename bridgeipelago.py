@@ -350,7 +350,7 @@ async def ProcessItemQueue():
                 itemclass = str(itemmessage['data'][2]['flags'])
                 location = str(LookupLocation(game,itemmessage['data'][4]['text']))
 
-                message = "```" + name + " found their " + item + "\nCheck: " + location + "\nClass: "+itemclass+"```"
+                message = "```" + name + " found their " + item + "\nCheck: " + location + "```"
                 ItemCheckLogMessage = name + "||" + item + "||" + name + "||" + location + "\n"
                 BotLogMessage = timecode + "||" + ItemCheckLogMessage
                 o = open(OutputFileLocation, "a")
@@ -366,7 +366,7 @@ async def ProcessItemQueue():
                 recipient = str(LookupSlot(itemmessage['data'][4]['text']))
                 location = str(LookupLocation(game,itemmessage['data'][6]['text']))
 
-                message = "```" + name + " sent " + item + " to " + recipient + "\nCheck: " + location + "\nClass: "+itemclass+"```"
+                message = "```" + name + " sent " + item + " to " + recipient + "\nCheck: " + location + "```"
                 ItemCheckLogMessage = recipient + "||" + item + "||" + name + "||" + location + "\n"
                 BotLogMessage = timecode + "||" + ItemCheckLogMessage
                 o = open(OutputFileLocation, "a")
