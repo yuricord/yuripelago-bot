@@ -5,7 +5,7 @@
 # | |_/ /| |   | || (_| || (_| ||  __/| || |_) ||  __/| || (_| || (_| || (_) |
 # \____/ |_|   |_| \__,_| \__, | \___||_|| .__/  \___||_| \__,_| \__, | \___/ 
 #                          __/ |         | |                      __/ |       
-#                         |___/          |_|                     |___/  v0.9.4
+#                         |___/          |_|                     |___/  v0.9.4.1
 #
 # An Archipelago Discord Bot
 #                - By the Zajcats
@@ -548,7 +548,8 @@ async def Command_GroupCheck(DMauthor, message):
 
 async def Command_Hints(player):
     try:
-        await message.author.create_dm()
+        await player.create_dm()
+
         page = requests.get(ArchTrackerURL)
         soup = BeautifulSoup(page.content, "html.parser")
 
@@ -650,7 +651,8 @@ async def Command_Hints(player):
                 # Caps off the message
                 checkmessage = checkmessage + "```"
                 await player.dm_channel.send(checkmessage)
-    except:
+    except Exception as e:
+        print(e)
         await DebugChannel.send("ERROR IN HINTLIST <@"+DiscordAlertUserID+">")
 
 async def Command_DeathCount():
@@ -863,7 +865,6 @@ async def Command_CheckGraph():
         # Save image and send - any existing plot will be overwritten
         plt.savefig(CheckPlotLocation, bbox_inches="tight")
         await MainChannel.send(file=discord.File(CheckPlotLocation))
-
     except:
         await DebugChannel.send("ERROR IN CHECKGRAPH <@"+DiscordAlertUserID+">")
 
