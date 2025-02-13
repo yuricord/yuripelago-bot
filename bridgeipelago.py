@@ -413,7 +413,6 @@ async def ProcessDeathQueue():
         o = open(DeathFileLocation, "a")
         o.write(DeathLogMessage)
         o.close()
-
         await SendMainChannelMessage(DeathMessage)
 
 @tasks.loop(seconds=1)
@@ -434,32 +433,40 @@ async def SendDMMessage(message,user):
     await MainChannel.send(message)
 
 async def Command_Register(message):
-    ArchSlot = message.content
-    ArchSlot = ArchSlot.replace("$register ","")
-    Sender = str(message.author)
-    RegistrationFile = RegistrationDirectory + Sender + ".csv"
-    RegistrationContent = ArchSlot + "\n"
-    # Generate the Registration File if it doesn't exist
-    o = open(RegistrationFile, "a")
-    o.close()
-    # Get contents of the registration file and save it to 'line'
-    o = open(RegistrationFile, "r")
-    line = o.read()
-    o.close()
-    # Check the registration file for ArchSlot, if they are not registered; do so. If they already are; tell them.
-    if not ArchSlot in line:
-        formattedmessage = "Registering " + Sender + " for slot " + ArchSlot
-        await SendMainChannelMessage(formattedmessage)
+    try:
+        ArchSlot = message.content
+        ArchSlot = ArchSlot.replace("$register ","")
+        Sender = str(message.author)
+        RegistrationFile = RegistrationDirectory + Sender + ".csv"
+        RegistrationContent = ArchSlot + "\n"
+        # Generate the Registration File if it doesn't exist
         o = open(RegistrationFile, "a")
-        o.write(RegistrationContent)
         o.close()
-    else:
-        await SendMainChannelMessage("You're already registered for that slot.")
+        # Get contents of the registration file and save it to 'line'
+        o = open(RegistrationFile, "r")
+        line = o.read()
+        o.close()
+        # Check the registration file for ArchSlot, if they are not registered; do so. If they already are; tell them.
+        if not ArchSlot in line:
+            formattedmessage = "Registering " + Sender + " for slot " + ArchSlot
+            await SendMainChannelMessage(formattedmessage)
+            o = open(RegistrationFile, "a")
+            o.write(RegistrationContent)
+            o.close()
+        else:
+            await SendMainChannelMessage("You're already registered for that slot.")
+    except Exception as e:
+        print(e)
+        await DebugChannel.send("ERROR IN REGISTER <@"+DiscordAlertUserID+">")
 
 async def Command_ClearReg(message):
-    Sender = str(message.author)
-    RegistrationFile = RegistrationDirectory + Sender + ".csv"
-    os.remove(RegistrationFile)
+    try:
+        Sender = str(message.author)
+        RegistrationFile = RegistrationDirectory + Sender + ".csv"
+        os.remove(RegistrationFile)
+    except Exception as e:
+        print(e)
+        await DebugChannel.send("ERROR IN CLEARREG <@"+DiscordAlertUserID+">")
 
 async def Command_KetchMeUp(message):
     try:
@@ -520,7 +527,8 @@ async def Command_KetchMeUp(message):
                         ketchupmessage = "```"
                 ketchupmessage = ketchupmessage + "```"
                 await message.author.dm_channel.send(ketchupmessage)
-    except:
+    except Exception as e:
+        print(e)
         await DebugChannel.send("ERROR IN KETCHMEUP <@"+DiscordAlertUserID+">")
 
 async def Command_GroupCheck(DMauthor, message):
@@ -543,7 +551,8 @@ async def Command_GroupCheck(DMauthor, message):
                     ketchupmessage = "```"
             ketchupmessage = ketchupmessage + "```"
             await DMauthor.dm_channel.send(ketchupmessage)
-    except:
+    except Exception as e:
+        print(e)
         await DebugChannel.send("ERROR IN GROUPCHECK <@"+DiscordAlertUserID+">")
 
 async def Command_Hints(player):
@@ -865,7 +874,8 @@ async def Command_CheckGraph():
         # Save image and send - any existing plot will be overwritten
         plt.savefig(CheckPlotLocation, bbox_inches="tight")
         await MainChannel.send(file=discord.File(CheckPlotLocation))
-    except:
+    except Exception as e:
+        print(e)
         await DebugChannel.send("ERROR IN CHECKGRAPH <@"+DiscordAlertUserID+">")
 
 async def Command_ILoveYou(message):
