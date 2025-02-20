@@ -10,7 +10,7 @@ I've also written this guide with Linux in mind, but that can be easily accompli
 You can figure most errors out by just googling.
 
 
-## Step 1) Preparing the Archipelago game (You only need to do this once)
+## Step 1) Preparing the Archipelago game
 When generating the Archipelago game, make sure the <ins>**bridgeipelago.yaml**</ins> is included in the game to ensure the bot has a lot to listen in on.  
 This slot has no effect on the AP itself.  
 If you'd like to add-in this bot to an existing game (or not have a dedicated slot for the bot) change ArchipelagoBotSlot in the .env to a valid slot-name.
