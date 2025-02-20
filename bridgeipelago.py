@@ -95,13 +95,18 @@ intents = discord.Intents.default()
 intents.message_content = True
 DiscordClient = discord.Client(intents=intents)
 
-# Make sure the arch data directory exists before we start creating log files
+# Make sure all of the directories exist before we start creating files
 if not os.path.exists(ArchDataDirectory):
     os.makedirs(ArchDataDirectory)
 
-# Make sure the logging directory exists before we start creating log files
 if not os.path.exists(LoggingDirectory):
     os.makedirs(LoggingDirectory)
+
+if not os.path.exists(RegistrationDirectory):
+    os.makedirs(RegistrationDirectory)
+
+if not os.path.exists(ItemQueueDirectory):
+    os.makedirs(ItemQueueDirectory)
 
 #Logfile Initialization. We need to make sure the log files exist before we start writing to them.
 l = open(DeathFileLocation, "a")
@@ -521,7 +526,7 @@ async def Command_KetchMeUp(message):
                     Location = line.split("||")[3].strip()
                     ketchupmessage = ketchupmessage + You.ljust(YouWidth) + " || " + Item.ljust(ItemWidth) + " || " + Sender.ljust(SenderWidth) + " || " + Location + "\n"
                     
-                    if len(ketchupmessage) > 1900:
+                    if len(ketchupmessage) > 1500:
                         ketchupmessage = ketchupmessage + "```"
                         await message.author.dm_channel.send(ketchupmessage)
                         ketchupmessage = "```"

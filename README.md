@@ -2,33 +2,87 @@
 
 Discord bridge for Archipelago in python
 
-## Preparing the Archipelago game
+[Discord Link](https://discord.gg/5v9P3qNPXp)
 
-When generating the Archipelago game, make sure the bridgeipelago.yaml is included in the game to ensure the bot has a lot to listen in on.
+## Setup:
+See the [SETUP GUIDE](docs/setup.md)
 
-If you'd like to add-in this bot to an existing game (or not have a dedicated slot for the bot) change ArchipelagoBotSlot in the .env to a valid slot-name.
+## Funtionality:
 
-## Bot Setup
+### Core
+This bot will monitor and track progress as you play through your Archipelago run.  
+This allows for some fun stats to be collected, logging from the bot on item checks that are found, and death notices from DeathLink players.
 
-Copy .env.template to .env
+When a check is found or a deathlink is received, it'll output the check in a discord channel.
 
-Fill out the .env for your use. The Discord and Archipelago sections are required to be filled out.
+```
+Examples:
+An item for yourself: 
+> Quasky_SM64 found their Power Star
+> Check: LLL: Boil the Big Bully
 
-You're free to leave the Advanced Config section as-is unless you know what you're doing.
+An item for someone else:
+> Quasky_SM64 sent Lens of Truth to Quasky_OOT
+> Check: LLL: Bully the Bullies
 
-Install the bot dependencies listed below.
+When someone with deathlink dies, it'll shame them in this channel.
+> Deathlink received from: Quasky_OOT
+```
 
-You'll need a discord bot API token for the bot. You can find setup for a token here: https://discordpy.readthedocs.io/en/stable/discord.html
+What this bot will NOT do:
+ - DM / ping you without consent
+ - Find items for you
+ - Give hints
+ - Find the reason the children of this world have forgotten the meaning of Christmas
 
+---
+### Ketchmeup
+You can also ask the bot to DM you all the items you've gained since last asking him.
+(See the registration below)
 
-## Running the Bot
+**IMPORTANT NOTES:**
+- This will send you EVERYTHING you've registered for since last asking. So even as you're playing and someone sends you an item, it'll still appear in the queue to be sent to you. (as the bot has no idea if you're playing or not)
+- The bot will NOT log items you give to your own game. You're expected to remember what you find for yourself
+- However the bot only understands slots. So if you're playing two games, the bot just assumes the other game is someone else and logs it. While ignoring the checks from your own game.
 
-Open up your terminal and run:
+```
+Example:
+You         || Item                         || Sender      || Location
+Quasky_OOT2 || Piece of Heart               || Quasky_OOT4 || Gerudo Training Ground Near Scarecrow Chest
+Quasky_OOT2 || Rupees (20)                  || Quasky_OOT4 || Ganons Castle Shadow Trial Front Chest
+Quasky_OOT2 || Bow                          || Quasky_OOT4 || Ganons Tower Boss Key Chest
+Quasky_OOT2 || Gold Skulltula Token         || Quasky_OOT4 || Sheik at Colossus
+Quasky_OOT2 || Rupees (200)                 || Quasky_OOT4 || KF Midos Bottom Left Chest
+Quasky_OOT2 || Gold Skulltula Token         || Quasky_OOT4 || KF Shop Item 6
+```
+Hopefully that makes sense. 
 
-`python3 bridgeipelago.py`
+---
+---
 
-You'll see the bot connect in your Discord channel and join the Archipelago game.
+## Commands
 
+|Player Commands|Description|
+|---|---|
+|$register \<slot>|Adds the slot provided to the user's registration file
+|$clearreg|Clears the user's registration file|
+|$ketchmeup|DMs the user all checks in their ItemQueue file, used to catch you up on missed checks|
+|$groupcheck \<slot>|DMs the user all checks in the slot's ItemQueue file, used to catch up on group games|
+|$hints|DMs the hinted items for a player's registered slots|
+|$deathcount|Scans the deathlog and tallies up the current deathcount for each slot|
+|$checkcount|Fetches the current Arch server's progress in simple txt format|
+|$checkgraph|Plots the current Arch progress in a picture|
+
+|Debug Commands|Description|
+|---|---|
+|$iloveyou|We all need to hear this sometimes.|
+|$hello|The bot says hello!|
+|$ArchInfo|\[CONSOLE] General bot details for debugging .env tables^|
+
+**\[^] DebugMode only commands**
+
+**\[^] DebugMode can expose unintended system information. Use with care.**
+  
 ## Configs
 |Key|Description|
 |---|---|
@@ -68,60 +122,3 @@ You'll see the bot connect in your Discord channel and join the Archipelago game
 **\[*] These should be four diffrent directories, all these logs in the same place will break the bot.**
 
 **\[^] DebugMode can expose unintended system information. Use with care.**
-
-## Core Dependencies
-
-**TODO: redo this or make it automatic, dependenceies outside of a python-vir are a nightmare**
-
-sudo apt install python3-pip
-
-### Bot dependencies
-
-python3 -m pip install -U discord.py
-
-pip install python-dotenv
-
-pip install numpy
-
-python3 -m pip install beautifulsoup4
-
-python3 -m pip install matplotlib
-
-#### Or, install with requirements.txt
-
-```
-pip install -r requirements.txt
-```
-
-## Commands
-
-|Core Commands|Description|
-|---|---|
-|$connect|Manually starts background processes*|
-|$disconnect|Manually stops background processes|
-
-**\[*] This should only be used when AutomaticSetup is set to 'false'**
-
-|Player Commands|Description|
-|---|---|
-|$register \<slot>|Adds the slot provided to the user's registration file
-|$clearreg|Clears the user's registration file|
-|$ketchmeup|DMs the user all checks in their ItemQueue file, used to catch you up on missed checks|
-|$groupcheck \<slot>|DMs the user all checks in the slot's ItemQueue file, used to catch up on group games
-|$hints|DMs the hinted items for a player's registered slots|
-|$deathcount|Scans the deathlog and tallies up the current deathcount for each slot|
-|$checkcount|Fetches the current Arch server's progress in simple txt format|
-|$checkgraph|Plots the current Arch progress in a picture|
-
-|Debug Commands|Description|
-|---|---|
-|$iloveyou|We all need to hear this sometimes.|
-|$hello|The bot says hello!|
-|$ArchInfo|\[CONSOLE] General bot details for debugging .env tables^|
-
-**\[^] DebugMode only commands**
-
-**\[^] DebugMode can expose unintended system information. Use with care.**
-
-
-  
