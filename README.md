@@ -122,3 +122,18 @@ Hopefully that makes sense.
 **\[*] These should be four diffrent directories, all these logs in the same place will break the bot.**
 
 **\[^] DebugMode can expose unintended system information. Use with care.**
+
+
+---
+---
+
+### Special Thanks
+
+Thank you to the people who encourged me to pour my time into this bot. Specificaly the Zajcats.
+
+Thank you to Rainwave Discord community to help with a private beta and bugfixing.
+
+Thank you to the Archipelago Community for making an amazing platform for the world to use.
+
+
+
