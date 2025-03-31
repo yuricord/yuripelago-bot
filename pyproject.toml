@@ -1,0 +1,19 @@
+[project]
+name = "archi-bot"
+version = "0.1.0"
+description = "A Discord Bot for managing Archipelago Randomizers"
+readme = "README.md"
+dependencies = [
+    "beautifulsoup4>=4.13",
+    "hikari-arc>=2.0.0",
+    "hikari[speedups]>=2.2.0",
+    "python-dotenv>=1.1.0",
+    "requests>=2.32.3",
+    "ruff>=0.11.2",
+    "uvloop>=0.21.0",
+    "websocket-client>=1.8.0",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

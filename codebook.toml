@@ -1,0 +1,9 @@
+dictionaries = []
+words = [
+    "clearreg",
+    "tanjun",
+]
+flag_words = []
+ignore_paths = []
+ignore_patterns = []
+use_global = true

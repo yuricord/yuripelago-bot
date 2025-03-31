@@ -10,14 +10,14 @@ See the [SETUP GUIDE](docs/setup.md)
 ## Funtionality:
 
 ### Core
-This bot will monitor and track progress as you play through your Archipelago run.  
+This bot will monitor and track progress as you play through your Archipelago run.
 This allows for some fun stats to be collected, logging from the bot on item checks that are found, and death notices from DeathLink players.
 
 When a check is found or a deathlink is received, it'll output the check in a discord channel.
 
 ```
 Examples:
-An item for yourself: 
+An item for yourself:
 > Quasky_SM64 found their Power Star
 > Check: LLL: Boil the Big Bully
 
@@ -55,7 +55,7 @@ Quasky_OOT2 || Gold Skulltula Token         || Quasky_OOT4 || Sheik at Colossus
 Quasky_OOT2 || Rupees (200)                 || Quasky_OOT4 || KF Midos Bottom Left Chest
 Quasky_OOT2 || Gold Skulltula Token         || Quasky_OOT4 || KF Shop Item 6
 ```
-Hopefully that makes sense. 
+Hopefully that makes sense.
 
 ---
 ---
@@ -71,18 +71,15 @@ Hopefully that makes sense.
 |$hints|DMs the hinted items for a player's registered slots|
 |$deathcount|Scans the deathlog and tallies up the current deathcount for each slot|
 |$checkcount|Fetches the current Arch server's progress in simple txt format|
-|$checkgraph|Plots the current Arch progress in a picture|
 
 |Debug Commands|Description|
 |---|---|
-|$iloveyou|We all need to hear this sometimes.|
-|$hello|The bot says hello!|
 |$ArchInfo|\[CONSOLE] General bot details for debugging .env tables^|
 
 **\[^] DebugMode only commands**
 
 **\[^] DebugMode can expose unintended system information. Use with care.**
-  
+
 ## Configs
 |Key|Description|
 |---|---|
@@ -113,7 +110,7 @@ Hopefully that makes sense.
 |AutomaticSetup|Automaticly starts background processes when bot is turned on|
 |DebugMode|Enables extra debug chat/bot options^|
 
-**\[%] For group IDs, ensure the '&' character is at the beggining of the ID** 
+**\[%] For group IDs, ensure the '&' character is at the beggining of the ID**
 
 **\[&] Items will still be logged in the BotLog**
 
@@ -134,6 +131,3 @@ Thank you to the people who encourged me to pour my time into this bot. Specific
 Thank you to Rainwave Discord community to help with a private beta and bugfixing.
 
 Thank you to the Archipelago Community for making an amazing platform for the world to use.
-
-
-

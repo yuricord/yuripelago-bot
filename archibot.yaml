@@ -1,5 +1,5 @@
-name: Bridgeipelago
+name: TrackerBot
 game: Archipelago
 description: bot
 Archipelago:
-    dummy: true
+  dummy: true
