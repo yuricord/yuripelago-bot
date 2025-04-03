@@ -1,8 +1,9 @@
+from sqlalchemy import Engine
 from sqlmodel import Field, Relationship, SQLModel, create_engine
 
 from archi_bot.types import ArchiVersion, SlotType
 
-DB = create_engine("sqlite:///archi-bot.db")
+DB: Engine = create_engine("sqlite:///archi-bot.db")
 
 
 class Room(SQLModel, table=True):

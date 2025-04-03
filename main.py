@@ -11,7 +11,9 @@ import hikari
 import miru
 import requests
 from bs4 import BeautifulSoup
+from sqlalchemy import Engine
 
+from archi_bot.db import DB, create_db_and_tables
 from archi_bot.tracker_client import TrackerClient
 
 # Import variables
@@ -81,6 +83,7 @@ miru_client = miru.Client.from_arc(client)
 client.set_type_dependency(hikari.GatewayBot, bot)
 client.set_type_dependency(miru.Client, miru_client)
 client.set_type_dependency(TrackerClient, ap_client)
+client.set_type_dependency(Engine, DB)
 print("Injected Dependencies")
 client.load_extensions_from("archi_bot/components")
 
@@ -112,6 +115,7 @@ with open(DeathTimecodeLocation, "a") as deathtimecodes:
 @client.add_startup_hook
 async def start_ap_client(ctx: arc.GatewayClient):
     client.create_task(ap_client.run())
+    create_db_and_tables()
     if DiscordJoinOnly == "False":
         time.sleep(5)
         print("Loading Arch Data...")
