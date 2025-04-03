@@ -1,5 +1,5 @@
 import os
-from multiprocessing import Queue
+from queue import Queue
 
 from dotenv import load_dotenv
 
@@ -46,8 +46,9 @@ global ConnectionPackage
 ConnectionPackage = []
 
 # Queues
+global item_queue
 item_queue = Queue()
+global death_queue
 death_queue = Queue()
+global chat_queue
 chat_queue = Queue()
-seppuku_queue = Queue()
-websocket_queue = Queue()

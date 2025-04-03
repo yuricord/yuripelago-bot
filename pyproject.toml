@@ -1,19 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "archi-bot"
 version = "0.1.0"
 description = "A Discord Bot for managing Archipelago Randomizers"
 readme = "README.md"
+requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.13",
     "hikari-arc>=2.0.0",
+    "hikari-miru>=4.2.0",
     "hikari[speedups]>=2.2.0",
+    "orjson>=3.10.16",
+    "pydantic>=2.11.1",
     "python-dotenv>=1.1.0",
     "requests>=2.32.3",
     "ruff>=0.11.2",
+    "sqlmodel>=0.0.24",
     "uvloop>=0.21.0",
-    "websocket-client>=1.8.0",
+    "websockets>=15.0.1",
 ]
 
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+
+[tool.setuptools]
+packages = ["archi_bot"]

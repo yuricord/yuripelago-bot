@@ -1,12 +1,13 @@
+import os
+
 import arc
 import hikari
 import hikari.messages
 import requests
-import os
 from bs4 import BeautifulSoup
 
-from bot_vars import RegistrationDirectory, ArchTrackerURL
-from events import DebugMessageEvent, MainChannelMessageEvent
+from archi_bot.events import DebugMessageEvent
+from archi_bot.vars import ArchTrackerURL, RegistrationDirectory
 
 plugin = arc.GatewayPlugin("hints")
 
@@ -23,7 +24,6 @@ async def hints_command(ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.in
 
         # Yoinks table rows from the checks table
         tables = soup.find("table", id="hints-table")
-        if not tables:
 
         for slots in tables.find_all("tbody"):
             rows = slots.find_all("tr")
@@ -153,9 +153,11 @@ async def hints_command(ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.in
                 await dm_channel.send(checkmessage)
     except Exception as e:
         print(e)
-        bot.dispatch(DebugMessageEvent(
-            content="ERROR IN HINTLIST <@" + DiscordAlertUserID + ">"
-        ))
+        bot.dispatch(
+            DebugMessageEvent(
+                app=bot, content="ERROR IN HINTLIST <@" + DiscordAlertUserID + ">"
+            )
+        )
 
 
 @arc.loader

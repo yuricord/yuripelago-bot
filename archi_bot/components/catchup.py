@@ -3,8 +3,8 @@ import os
 import arc
 import hikari
 
-from bot_vars import ItemQueueDirectory, RegistrationDirectory
-from events import DebugMessageEvent
+from archi_bot.events import DebugMessageEvent
+from archi_bot.vars import DiscordAlertUserID, ItemQueueDirectory, RegistrationDirectory
 
 plugin = arc.GatewayPlugin("catchup")
 
@@ -17,7 +17,7 @@ async def catchup_command(
     ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.inject()
 ):
     try:
-        dm_channel = ctx.author.fetch_dm_channel()
+        dm_channel = await ctx.author.fetch_dm_channel()
         RegistrationFile = RegistrationDirectory + str(ctx.author.id) + ".csv"
         if not os.path.isfile(RegistrationFile):
             await dm_channel.send("You've not registered for a slot : (")
@@ -100,7 +100,7 @@ async def catchup_command(
         print(e)
         bot.dispatch(
             DebugMessageEvent(
-                content="ERROR IN KETCHMEUP <@" + DiscordAlertUserID + ">"
+                app=bot, content=f"ERROR IN CATCHUP <@{DiscordAlertUserID}>"
             )
         )
 

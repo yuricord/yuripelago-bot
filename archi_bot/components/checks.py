@@ -5,8 +5,8 @@ import hikari
 import requests
 from bs4 import BeautifulSoup
 
-from bot_vars import ArchTrackerURL, ItemQueueDirectory
-from events import DebugMessageEvent, MainChannelMessageEvent
+from archi_bot.events import DebugMessageEvent
+from archi_bot.vars import ArchTrackerURL, DiscordAlertUserID, ItemQueueDirectory
 
 plugin = arc.GatewayPlugin("checks")
 
@@ -41,7 +41,7 @@ async def groupcheck_command(
         print(e)
         bot.dispatch(
             DebugMessageEvent(
-                content="ERROR IN GROUPCHECK <@" + DiscordAlertUserID + ">"
+                app=bot, content=f"ERROR IN GROUPCHECK <@{DiscordAlertUserID}>"
             )
         )
 
@@ -130,16 +130,26 @@ async def checkcount_command(
             )
             if len(checkmessage) > 1900:
                 checkmessage = checkmessage + "```"
-                await MainChannel.send(checkmessage)
+                await ctx.respond(checkmessage)
                 checkmessage = "```"
 
         # Finishes the check message
         checkmessage = checkmessage + "```"
-        bot.dispatch(MainChannelMessageEvent(content=checkmessage))
+        await ctx.respond(content=checkmessage)
     except Exception as e:
         print(e)
         bot.dispatch(
             DebugMessageEvent(
-                content="ERROR IN CHECKCOUNT <@" + DiscordAlertUserID + ">"
+                app=bot, content=f"ERROR IN CHECKCOUNT <@{DiscordAlertUserID}>"
             )
         )
+
+
+@arc.loader
+def loader(client: arc.GatewayClient) -> None:
+    client.add_plugin(plugin)
+
+
+@arc.unloader
+def unloader(client: arc.GatewayClient) -> None:
+    client.remove_plugin(plugin)

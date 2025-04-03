@@ -3,8 +3,8 @@ import os
 import arc
 import hikari
 
-from bot_vars import RegistrationDirectory
-from events import DebugMessageEvent
+from archi_bot.events import DebugMessageEvent
+from archi_bot.vars import DiscordAlertUserID, RegistrationDirectory
 
 plugin = arc.GatewayPlugin("register")
 
@@ -40,7 +40,9 @@ async def register_command(
     except Exception as e:
         print(e)
         bot.dispatch(
-            DebugMessageEvent(content="ERROR IN REGISTER <@" + DiscordAlertUserID + ">")
+            DebugMessageEvent(
+                app=bot, content=f"ERROR IN REGISTER <@{DiscordAlertUserID}>"
+            )
         )
 
 
@@ -56,7 +58,9 @@ async def clearreg_command(
     except Exception as e:
         print(e)
         bot.dispatch(
-            DebugMessageEvent(content="ERROR IN CLEARREG <@" + DiscordAlertUserID + ">")
+            DebugMessageEvent(
+                app=bot, content=f"ERROR IN CLEARREG <@{DiscordAlertUserID}>"
+            )
         )
 
 

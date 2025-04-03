@@ -5,7 +5,21 @@ import arc
 import hikari
 import requests
 
-from bot_vars import (
+from archi_bot.events import DebugMessageEvent, MainChannelMessageEvent
+from archi_bot.models.packets import (
+    ArchiPacket,
+    BouncedPacket,
+    PJItemSendPacket,
+    PrintJSONPacketBase,
+)
+from archi_bot.utils import (
+    cancel_process,
+    lookup_game,
+    lookup_item,
+    lookup_location,
+    lookup_slot,
+)
+from archi_bot.vars import (
     ArchPort,
     ArchServerURL,
     DeathFileLocation,
@@ -17,18 +31,17 @@ from bot_vars import (
     death_queue,
     item_queue,
 )
-from events import DebugMessageEvent, MainChannelMessageEvent
-from utils import cancel_process, lookup_game, lookup_item, lookup_location, lookup_slot
 
 plugin = arc.GatewayPlugin("tasks")
 
 
-@arc.utils.interval_loop(seconds=900)
+@arc.utils.interval_loop(minutes=15)
+@plugin.inject_dependencies
 async def archi_host_checker(bot: hikari.GatewayBot = arc.inject()):
     try:
         ArchRoomID = ArchServerURL.split("/")
-        ArchAPIUEL = ArchServerURL.split("/room/")
-        RoomAPI = ArchAPIUEL[0] + "/api/room_status/" + ArchRoomID[4]
+        ArchAPIURL = ArchServerURL.split("/room/")
+        RoomAPI = ArchAPIURL[0] + "/api/room_status/" + ArchRoomID[4]
         RoomPage = requests.get(RoomAPI)
         RoomData = json.loads(RoomPage.content)
 
@@ -42,36 +55,33 @@ async def archi_host_checker(bot: hikari.GatewayBot = arc.inject()):
             message = (
                 f"Port Check Failed - Restart tracker process <@{DiscordAlertUserID}>"
             )
-            bot.dispatch(DebugMessageEvent(content=message))
+            bot.dispatch(DebugMessageEvent(app=bot, content=message))
     except:
         bot.dispatch(
             DebugMessageEvent(
-                content="ERROR IN CHECKARCHHOST <@" + DiscordAlertUserID + ">"
+                app=bot, content=f"ERROR IN CHECKARCHHOST <@{DiscordAlertUserID}>"
             )
         )
 
 
 @arc.utils.interval_loop(seconds=1)
+@plugin.inject_dependencies
 async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
     try:
         if item_queue.empty():
             return
         else:
             timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
-            item_message = item_queue.get()
+            packet: PJItemSendPacket = item_queue.get()
+            print(f"Got item: {packet}")
 
-            # if message has "found their" it's a self check, output and dont log
-            query = item_message["data"][1]["text"]
-            if query == " found their ":
-                sending_game = str(lookup_game(item_message["data"][0]["text"]))
-                sending_player = str(lookup_slot(item_message["data"][0]["text"]))
-                sent_item = str(
-                    lookup_item(sending_game, item_message["data"][2]["text"])
-                )
-                item_class = str(item_message["data"][2]["flags"])
-                location = str(
-                    lookup_location(sending_game, item_message["data"][4]["text"])
-                )
+            # if message has "found their" it's a self check, output and don't log
+            if packet.item.player == packet.receiving:
+                sending_game = str(lookup_game(packet.item.player))
+                sending_player = str(lookup_slot(packet.item.player))
+                sent_item = str(lookup_item(sending_game, packet.item.item))
+                item_class = str(packet.item.flags)
+                location = str(lookup_location(sending_game, packet.item.location))
 
                 message = f"""
                     ```
@@ -87,27 +97,23 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                 o.write(bot_log_message)
                 o.close()
 
-            elif query == " sent ":
-                sending_player = str(lookup_slot(item_message["data"][0]["text"]))
-                sending_game = str(lookup_game(item_message["data"][0]["text"]))
-                recieving_game = str(lookup_game(item_message["data"][4]["text"]))
-                sent_item = str(
-                    lookup_item(recieving_game, item_message["data"][2]["text"])
-                )
-                item_class = str(item_message["data"][2]["flags"])
-                recieving_player = str(lookup_slot(item_message["data"][4]["text"]))
-                location = str(
-                    lookup_location(sending_game, item_message["data"][6]["text"])
-                )
+            elif packet.item.player != packet.receiving:
+                sending_game = str(lookup_game(packet.item.player))
+                sending_player = str(lookup_slot(packet.item.player))
+                receiving_game = str(lookup_game(packet.receiving))
+                sent_item = str(lookup_item(receiving_game, packet.item.item))
+                item_class = str(packet.item.flags)
+                receiving_player = str(lookup_slot(packet.receiving))
+                location = str(lookup_location(sending_game, packet.item.location))
 
                 message = f"""
                     ```
-                    {sending_player} sent {sent_item} to {recieving_player}
+                    {sending_player} sent {sent_item} to {receiving_player}
                     Check: {location}
                     ```
                 """
                 item_check_log_message = (
-                    f"{recieving_player}||{sent_item}||{sending_player}||{location}\n"
+                    f"{receiving_player}||{sent_item}||{sending_player}||{location}\n"
                 )
                 bot_log_message = f"{timecode}||{item_check_log_message}"
                 o = open(OutputFileLocation, "a")
@@ -115,24 +121,24 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                 o.close()
 
                 if int(item_class) == 4 and SpoilTraps == "true":
-                    ItemQueueFile = ItemQueueDirectory + recieving_player + ".csv"
+                    ItemQueueFile = ItemQueueDirectory + receiving_player + ".csv"
                     i = open(ItemQueueFile, "a")
                     i.write(item_check_log_message)
                     i.close()
                 elif int(item_class) != 4:
-                    ItemQueueFile = ItemQueueDirectory + recieving_player + ".csv"
+                    ItemQueueFile = ItemQueueDirectory + receiving_player + ".csv"
                     i = open(ItemQueueFile, "a")
                     i.write(item_check_log_message)
                     i.close()
             else:
                 message = "Unknown Item Send :("
                 print(message)
-                bot.dispatch(DebugMessageEvent(content=message))
+                bot.dispatch(DebugMessageEvent(app=bot, content=message))
 
             if int(item_class) == 4 and SpoilTraps == "true":
-                bot.dispatch(MainChannelMessageEvent(content=message))
+                bot.dispatch(MainChannelMessageEvent(app=bot, content=message))
             elif int(item_class) != 4 and ItemFilter(int(item_class)):
-                bot.dispatch(MainChannelMessageEvent(content=message))
+                bot.dispatch(MainChannelMessageEvent(app=bot, content=message))
             else:
                 # In Theory, this should only be called when the two above conditions are not met
                 # So we call this dummy function to escape the async call.
@@ -140,42 +146,48 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
 
     except Exception as e:
         print(e)
-        await bot.dispatch(DebugMessageEvent(content="Error In Item Queue Processor"))
+        await bot.dispatch(
+            DebugMessageEvent(app=bot, content="Error In Item Queue Processor")
+        )
 
 
 @arc.utils.interval_loop(seconds=1)
+@plugin.inject_dependencies
 async def death_queue_processor(bot: hikari.GatewayBot = arc.inject()):
     if death_queue.empty():
         return
     else:
-        chatmessage = death_queue.get()
+        chatmessage: BouncedPacket = death_queue.get()
         timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
-        DeathMessage = (
-            "**Deathlink received from: " + chatmessage["data"]["source"] + "**"
-        )
-        DeathLogMessage = timecode + "||" + chatmessage["data"]["source"] + "\n"
+        DeathMessage = f"**Deathlink received from: {chatmessage.data.source}**"
+        DeathLogMessage = f"{timecode}||{chatmessage.data.source}\n"
         o = open(DeathFileLocation, "a")
         o.write(DeathLogMessage)
         o.close()
-        bot.dispatch(MainChannelMessageEvent(content=DeathMessage))
+        bot.dispatch(MainChannelMessageEvent(app=bot, content=DeathMessage))
 
 
 @arc.utils.interval_loop(seconds=1)
+@plugin.inject_dependencies
 async def chat_queue_processor(bot: hikari.GatewayBot = arc.inject()):
     if chat_queue.empty():
         return
     else:
-        chatmessage = chat_queue.get()
-        bot.dispatch(MainChannelMessageEvent(content=chatmessage["data"][0]["text"]))
+        chatmessage: PrintJSONPacketBase = chat_queue.get()
+        bot.dispatch(MainChannelMessageEvent(app=bot, content=chatmessage.data[0].text))
 
 
 @arc.loader
 def loader(client: arc.GatewayClient) -> None:
     client.add_plugin(plugin)
-    archi_host_checker.start()
-    item_queue_processor.start()
-    death_queue_processor.start()
-    chat_queue_processor.start()
+
+    @client.add_startup_hook
+    async def start_tasks(client: arc.GatewayClient) -> None:
+        print("Starting Loops")
+        archi_host_checker.start()
+        item_queue_processor.start()
+        death_queue_processor.start()
+        chat_queue_processor.start()
 
 
 @arc.unloader

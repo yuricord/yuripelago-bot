@@ -1,10 +1,8 @@
-import os
-
 import arc
 import hikari
 
-from bot_vars import DeathFileLocation
-from events import DebugMessageEvent, MainChannelMessageEvent
+from archi_bot.events import DebugMessageEvent, MainChannelMessageEvent
+from archi_bot.vars import DeathFileLocation, DiscordAlertUserID
 
 plugin = arc.GatewayPlugin("info")
 
@@ -38,8 +36,20 @@ async def deathcount_command(
             deathcounts.append(int(deathdict[key]))
             message = message + "\n" + str(key) + ": " + str(deathdict[key])
         message = message + "```"
-        bot.dispatch(MainChannelMessageEvent(content=message))
+        await ctx.respond(message)
     except:
         bot.dispatch(
-            DebugMessageEvent(content="ERROR DEATHCOUNT <@" + DiscordAlertUserID + ">")
+            DebugMessageEvent(
+                app=bot, content=f"ERROR WITH DEATHCOUNT <@{DiscordAlertUserID}>"
+            )
         )
+
+
+@arc.loader
+def loader(client: arc.GatewayClient) -> None:
+    client.add_plugin(plugin)
+
+
+@arc.unloader
+def unloader(client: arc.GatewayClient) -> None:
+    client.remove_plugin(plugin)

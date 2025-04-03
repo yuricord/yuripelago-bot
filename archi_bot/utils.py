@@ -1,6 +1,10 @@
 import json
 
-from bot_vars import (
+from archi_bot.models.packets import (
+    ConnectedPacket,
+    DataPackagePacket,
+)
+from archi_bot.vars import (
     ArchConnectionDump,
     ArchDataDump,
     ArchGameDump,
@@ -10,9 +14,9 @@ from bot_vars import (
 )
 
 
-def write_data_package(data):
+def write_data_package(data: DataPackagePacket):
     with open(ArchDataDump, "w") as f:
-        json.dump(data, f)
+        json.dump(data.model_dump(), f)
 
     with open(ArchDataDump, "r") as f:
         LoadedJSON = json.load(f)
@@ -23,9 +27,9 @@ def write_data_package(data):
         json.dump(Games, f)
 
 
-def write_connection_package(data):
+def write_connection_package(data: ConnectedPacket):
     with open(ArchConnectionDump, "w") as f:
-        json.dump(data, f)
+        json.dump(data.model_dump(), f)
 
 
 def lookup_item(game, id):

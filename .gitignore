@@ -9,3 +9,6 @@ dist/
 .ropeproject
 .direnv
 .ruff_cache
+*.egg-info
+data/
+__pycache__/
