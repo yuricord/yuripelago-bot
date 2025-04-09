@@ -19,9 +19,6 @@ from archi_bot.tracker_client import TrackerClient
 # Import variables
 from archi_bot.vars import (
     ActivePlayers,
-    ArchConnectionDump,
-    ArchDataDirectory,
-    ArchGameDump,
     ArchHost,
     ArchipelagoBotSlot,
     ArchPort,
@@ -34,9 +31,6 @@ from archi_bot.vars import (
     LoggingDirectory,
     OutputFileLocation,
     RegistrationDirectory,
-    chat_queue,
-    death_queue,
-    item_queue,
 )
 
 if not DiscordToken:
@@ -68,9 +62,6 @@ ap_client = TrackerClient(
     port=ArchPort,
     slot_name=ArchipelagoBotSlot,
     verbose_logging=False,
-    on_chat_send=lambda args: chat_queue.put(args),
-    on_death_link=lambda args: death_queue.put(args),
-    on_item_send=lambda args: item_queue.put(args),
 )
 # Discord Bot Initialization
 bot = hikari.GatewayBot(DiscordToken)
@@ -88,9 +79,6 @@ print("Injected Dependencies")
 client.load_extensions_from("archi_bot/components")
 
 # Make sure all of the directories exist before we start creating files
-if not os.path.exists(ArchDataDirectory):
-    os.makedirs(ArchDataDirectory)
-
 if not os.path.exists(LoggingDirectory):
     os.makedirs(LoggingDirectory)
 
@@ -114,31 +102,8 @@ with open(DeathTimecodeLocation, "a") as deathtimecodes:
 # Start the AP Client after the bot starts
 @client.add_startup_hook
 async def start_ap_client(ctx: arc.GatewayClient):
-    client.create_task(ap_client.run())
     create_db_and_tables()
-    if DiscordJoinOnly == "False":
-        time.sleep(5)
-        print("Loading Arch Data...")
-
-        # Wait for game dump to be created by tracker client
-        while not os.path.exists(ArchGameDump):
-            print(
-                "waiting for ArchGameDump to be created on when data package is received"
-            )
-            time.sleep(2)
-
-        with open(ArchGameDump, "r") as f:
-            DumpJSON = json.load(f)
-
-        # Wait for connection dump to be created by tracker client
-        while not os.path.exists(ArchConnectionDump):
-            print("waiting for ArchConnectionDump to be created on room connection")
-            time.sleep(2)
-
-        with open(ArchConnectionDump, "r") as f:
-            ConnectionPackage = json.load(f)
-
-        time.sleep(3)
+    client.create_task(ap_client.run())
 
 
 bot.run()

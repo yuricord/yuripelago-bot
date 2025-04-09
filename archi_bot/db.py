@@ -1,23 +1,39 @@
-from sqlalchemy import Engine
+from typing import Optional
+
+from sqlalchemy import JSON, Engine
 from sqlmodel import Field, Relationship, SQLModel, create_engine
 
-from archi_bot.types import ArchiVersion, SlotType
+from archi_bot.types import SlotType
 
 DB: Engine = create_engine("sqlite:///archi-bot.db")
 
 
-class Room(SQLModel, table=True):
-    id: str
-    version: ArchiVersion
+class ArchiRoom(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    version: dict[str, str | int] = Field(
+        sa_type=JSON
+    )  # The simplified form of archi_bot.types.ArchiVersion for SQLAlchemy Reasons(tm)
     password: bool
     hint_cost: int
     location_check_points: int
-    games: list[str]
-    datapackage_checksums: dict[str, str]
+    rando_game: "RandoGame" = Relationship(back_populates="room")
+
+
+class RandoGame(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    room: ArchiRoom = Relationship(back_populates="rando_game")
+    server_url: str
+    port: int
+    bot_slot: str = Field(default="ArchiBot")
+    game_channel: int
+    tracker_url: str
+    room_url: str
+    spoil_traps: bool
 
 
 # Create our DB Entity Classes
 class Hint(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     receiving_player: int
     finding_player: int
     location: int
@@ -25,64 +41,74 @@ class Hint(SQLModel, table=True):
     found: bool
     entrance: str = ""
     item_flags: int = 0
-    room_id: str = Field(foreign_key="room.id")
+    room_id: str = Field(foreign_key="archiroom.id")
 
 
-class Game(SQLModel, table=True):
-    name: str
+class GameDataPackage(SQLModel, table=True):
+    name: str = Field(primary_key=True)
     package_checksum: str
 
 
 class ItemGroup(SQLModel, table=True):
     # Custom Table Name for safety
-    __tablename__: str = "item_group"  # type:ignore
-    name: str
-    game: str = Field(foreign_key="game.name")
+    name: str = Field(primary_key=True)
+    game: str = Field(foreign_key="gamedatapackage.name", primary_key=True)
 
 
 class Item(SQLModel, table=True):
-    item_id: int
-    game: str = Field(foreign_key="game.name")
+    item_id: int = Field(primary_key=True)
+    game: str = Field(foreign_key="gamedatapackage.name", primary_key=True)
     name: str
-    group: str = Field(foreign_key="item_group.name")
+    group: Optional[str] = Field(default=None, foreign_key="itemgroup.name")
 
 
 class LocationGroup(SQLModel, table=True):
-    __tablename__: str = "location_group"  # type:ignore
-    name: str
-    game: str = Field(foreign_key="game.name")
+    name: str = Field(primary_key=True)
+    game: str = Field(foreign_key="gamedatapackage.name", primary_key=True)
 
 
 class Location(SQLModel, table=True):
-    location_id: int
-    game: str = Field(foreign_key="game.name")
+    location_id: int = Field(primary_key=True)
+    game: str = Field(foreign_key="gamedatapackage.name", primary_key=True)
     name: str
-    group: str = Field(foreign_key="location_group.name")
+    group: Optional[str] = Field(default=None, foreign_key="locationgroup.name")
 
 
 class DiscordSlotLink(SQLModel, table=True):
-    slot_id: int | None = Field(default=None, foreign_key="slot.id", primary_key=True)
+    slot_id: int | None = Field(
+        default=None, foreign_key="archislot.global_id", primary_key=True
+    )
     discord_id: int | None = Field(
-        default=None, foreign_key="discord_user.id", primary_key=True
+        default=None, foreign_key="discorduser.id", primary_key=True
     )
 
 
-class Slot(SQLModel, table=True):
+class ArchiSlot(SQLModel, table=True):
+    global_id: int | None = Field(default=None, primary_key=True)
+    id: int
     name: str
-    game: str
+    game: str = Field(foreign_key="gamedatapackage.name")
     type: SlotType
-    group_members: list[int] = []  # Only populated if `self.type == SlotType.group`
-    room_id: str = Field(foreign_key="room.id")
-    players: list["DiscordUser"] = Relationship(
+    group_members: list[int] = Field(
+        default=[], sa_type=JSON
+    )  # Only populated if `self.type == SlotType.group`
+    room_id: str = Field(foreign_key="archiroom.id")
+    discord_users: list["DiscordUser"] = Relationship(
         back_populates="slots", link_model=DiscordSlotLink
     )
 
 
+class ArchiPlayer(SQLModel, table=True):
+    team: int = Field(primary_key=True)
+    slot: int = Field(primary_key=True)
+    name: str
+    room_id: str = Field(foreign_key="archiroom.id", primary_key=True)
+
+
 class DiscordUser(SQLModel, table=True):
-    __tablename__: str = "discord_user"  # type:ignore
-    id: int
-    slots: list[Slot] = Relationship(
-        back_populates="players", link_model=DiscordSlotLink
+    id: int = Field(primary_key=True)
+    slots: list[ArchiSlot] = Relationship(
+        back_populates="discord_users", link_model=DiscordSlotLink
     )
 
 

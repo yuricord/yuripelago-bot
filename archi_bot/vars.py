@@ -20,7 +20,6 @@ ItemFilterLevel = int(os.getenv("BotItemFilterLevel"))
 LoggingDirectory = os.getcwd() + os.getenv("LoggingDirectory")
 RegistrationDirectory = os.getcwd() + os.getenv("PlayerRegistrationDirectory")
 ItemQueueDirectory = os.getcwd() + os.getenv("PlayerItemQueueDirectory")
-ArchDataDirectory = os.getcwd() + os.getenv("ArchipelagoDataDirectory")
 JoinMessage = os.getenv("JoinMessage")
 DebugMode = bool(os.getenv("DebugMode"))
 DiscordJoinOnly = os.getenv("DiscordJoinOnly")
@@ -32,10 +31,6 @@ ArchInfo = ArchHost + ":" + ArchPort
 OutputFileLocation = LoggingDirectory + "BotLog.txt"
 DeathFileLocation = LoggingDirectory + "DeathLog.txt"
 DeathTimecodeLocation = LoggingDirectory + "DeathTimecode.txt"
-ArchDataDump = ArchDataDirectory + "ArchDataDump.json"
-ArchGameDump = ArchDataDirectory + "ArchGameDump.json"
-ArchConnectionDump = ArchDataDirectory + "ArchConnectionDump.json"
-ArchRawData = ArchDataDirectory + "ArchRawData.txt"
 
 # Global Variable Declaration
 global ActivePlayers

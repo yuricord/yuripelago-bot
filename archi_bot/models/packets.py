@@ -46,7 +46,7 @@ class ConnectedPacket(BaseModel):
     missing_locations: list[int]
     checked_locations: list[int]
     slot_data: Optional[dict[str, Any]]
-    slot_info: dict[str, ArchiNetworkSlot]
+    slot_info: dict[int, ArchiNetworkSlot]
     hint_points: int
 
 
@@ -77,7 +77,7 @@ class BouncedPacket(BaseModel):
     games: Optional[list[str]] = None
     slots: Optional[list[int]] = None
     tags: Optional[list[str]] = None
-    data: dict
+    data: dict[Any, Any]
 
 
 class InvalidPacketPacket(BaseModel):
@@ -106,6 +106,7 @@ class SetReplyPacket(BaseModel):
 class PrintJSONPacketBase(BaseModel):
     cmd: Literal[MessageCommand.PRINT_JSON]
     data: list[ArchiJSONMessagePart]
+    type: Any
 
 
 class PJItemSendPacket(PrintJSONPacketBase):

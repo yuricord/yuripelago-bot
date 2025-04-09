@@ -1,10 +1,10 @@
 import asyncio
 import json
 import sys
-import typing
 import uuid
 from collections.abc import Callable
 from threading import Thread
+from typing import Any, Optional
 
 from orjson import loads
 from pydantic import TypeAdapter
@@ -16,9 +16,15 @@ from archi_bot.models.packets import (
     ConnectedPacket,
     DataPackagePacket,
     PrintJSONPacketBase,
+    RoomInfoPacket,
 )
 from archi_bot.types import MessageCommand, PrintJsonType, SlotType
-from archi_bot.utils import write_connection_package, write_data_package
+from archi_bot.utils import (
+    write_connection_package,
+    write_data_package,
+    write_room_info,
+)
+from archi_bot.vars import chat_queue, death_queue, item_queue
 
 
 class TrackerClient:
@@ -44,7 +50,7 @@ class TrackerClient:
         on_chat_send: Callable | None = None,
         on_datapackage: Callable | None = None,
         verbose_logging: bool = False,
-        **kwargs: typing.Any,
+        **kwargs: Any,
     ) -> None:
         self.server_uri = server_uri
         self.port = port
@@ -59,6 +65,7 @@ class TrackerClient:
         self.connection: ClientConnection
         self.socket_thread: Thread
         self.packet_adapter: TypeAdapter = TypeAdapter(ArchiPacket)
+        self.room_id: Optional[str] = None
 
     async def start(self) -> None:
         print(
@@ -107,20 +114,18 @@ class TrackerClient:
         async for message in self.connection:
             """Handles incoming messages from the Archipelago MultiServer."""
             m = loads(message)[0]
-            print(f"Got packet: {m}")
             packet: ArchiPacket = self.packet_adapter.validate_python(m)
             cmd = packet.cmd
 
             if cmd == MessageCommand.ROOM_INFO:
+                self.room_id = write_room_info(RoomInfoPacket.model_validate(packet))
                 await self.send_connect()
                 await self.get_datapackage()
             elif cmd == MessageCommand.DATA_PACKAGE:
-                write_data_package(
-                    DataPackagePacket.model_validate(packet.model_dump(by_alias=True))
-                )
+                write_data_package(DataPackagePacket.model_validate(packet))
             elif cmd == MessageCommand.CONNECTED:
                 write_connection_package(
-                    ConnectedPacket.model_validate(packet.model_dump(by_alias=True))
+                    ConnectedPacket.model_validate(packet), self.room_id
                 )
                 print("Connected to server.")
             elif cmd == MessageCommand.CONNECTION_REFUSED:
@@ -140,7 +145,7 @@ class TrackerClient:
                     self.on_death_link(packet)
 
     async def send_connect(self) -> None:
-        print("Sending `Connect` packet to log in to server.")
+        print("Connecting to Archipelago server..")
         payload = {
             "cmd": "Connect",
             "game": "",
@@ -154,7 +159,7 @@ class TrackerClient:
         await self.send_message(payload)
 
     async def get_datapackage(self) -> None:
-        print("Sending `DataPackage` packet to request data.")
+        print("Fetching DataPackage..")
         payload = {"cmd": "GetDataPackage"}
         await self.send_message(payload)
 
@@ -163,3 +168,12 @@ class TrackerClient:
 
     async def stop(self) -> None:
         await self.connection.close()
+
+    async def on_chat_send(self, args) -> None:
+        chat_queue.put((self.room_id, args))
+
+    async def on_death_link(self, args) -> None:
+        death_queue.put((self.room_id, args))
+
+    async def on_item_send(self, args) -> None:
+        item_queue.put((self.room_id, args))

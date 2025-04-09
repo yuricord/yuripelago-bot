@@ -7,17 +7,16 @@ import requests
 
 from archi_bot.events import DebugMessageEvent, MainChannelMessageEvent
 from archi_bot.models.packets import (
-    ArchiPacket,
     BouncedPacket,
     PJItemSendPacket,
     PrintJSONPacketBase,
 )
 from archi_bot.utils import (
-    cancel_process,
-    lookup_game,
-    lookup_item,
-    lookup_location,
-    lookup_slot,
+    get_archi_game_name,
+    get_archi_item,
+    get_archi_location_name,
+    get_archi_slot_name,
+    item_filter,
 )
 from archi_bot.vars import (
     ArchPort,
@@ -49,9 +48,6 @@ async def archi_host_checker(bot: hikari.GatewayBot = arc.inject()):
         if cond == ArchPort:
             return
         else:
-            print("Port Check Failed")
-            print(RoomData["last_port"])
-            print(ArchPort)
             message = (
                 f"Port Check Failed - Restart tracker process <@{DiscordAlertUserID}>"
             )
@@ -72,16 +68,20 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
             return
         else:
             timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
-            packet: PJItemSendPacket = item_queue.get()
+            item = item_queue.get()
+            packet: PJItemSendPacket = item[1]
+            room_id = item[0]
             print(f"Got item: {packet}")
 
             # if message has "found their" it's a self check, output and don't log
             if packet.item.player == packet.receiving:
-                sending_game = str(lookup_game(packet.item.player))
-                sending_player = str(lookup_slot(packet.item.player))
-                sent_item = str(lookup_item(sending_game, packet.item.item))
+                sending_game = get_archi_game_name(packet.item.player, room_id)
+                sending_player = get_archi_slot_name(packet.item.player, room_id)
+                sent_item = get_archi_item(sending_game, packet.item.item, room_id)
                 item_class = str(packet.item.flags)
-                location = str(lookup_location(sending_game, packet.item.location))
+                location = get_archi_location_name(
+                    sending_game, packet.item.location, room_id
+                )
 
                 message = f"""
                     ```
@@ -98,13 +98,15 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                 o.close()
 
             elif packet.item.player != packet.receiving:
-                sending_game = str(lookup_game(packet.item.player))
-                sending_player = str(lookup_slot(packet.item.player))
-                receiving_game = str(lookup_game(packet.receiving))
-                sent_item = str(lookup_item(receiving_game, packet.item.item))
-                item_class = str(packet.item.flags)
-                receiving_player = str(lookup_slot(packet.receiving))
-                location = str(lookup_location(sending_game, packet.item.location))
+                sending_game = get_archi_game_name(packet.item.player, room_id)
+                sending_player = get_archi_slot_name(packet.item.player, room_id)
+                receiving_game = get_archi_game_name(packet.receiving, room_id)
+                sent_item = get_archi_item(receiving_game, packet.item.item, room_id)
+                item_class = packet.item.flags
+                receiving_player = get_archi_slot_name(packet.receiving, room_id)
+                location = get_archi_location_name(
+                    sending_game, packet.item.location, room_id
+                )
 
                 message = f"""
                     ```
@@ -135,14 +137,13 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                 print(message)
                 bot.dispatch(DebugMessageEvent(app=bot, content=message))
 
-            if int(item_class) == 4 and SpoilTraps == "true":
+            if item_class == 4 and SpoilTraps == "true":
                 bot.dispatch(MainChannelMessageEvent(app=bot, content=message))
-            elif int(item_class) != 4 and ItemFilter(int(item_class)):
+            elif item_class != 4 and item_filter(item_class):
                 bot.dispatch(MainChannelMessageEvent(app=bot, content=message))
             else:
                 # In Theory, this should only be called when the two above conditions are not met
-                # So we call this dummy function to escape the async call.
-                await cancel_process()
+                pass
 
     except Exception as e:
         print(e)
@@ -157,10 +158,11 @@ async def death_queue_processor(bot: hikari.GatewayBot = arc.inject()):
     if death_queue.empty():
         return
     else:
-        chatmessage: BouncedPacket = death_queue.get()
+        death = death_queue.get()
+        chatmessage: BouncedPacket = death[1]
         timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
-        DeathMessage = f"**Deathlink received from: {chatmessage.data.source}**"
-        DeathLogMessage = f"{timecode}||{chatmessage.data.source}\n"
+        DeathMessage = f"**Deathlink received from: {chatmessage.data['source']}**"
+        DeathLogMessage = f"{timecode}||{chatmessage.data['source']}\n"
         o = open(DeathFileLocation, "a")
         o.write(DeathLogMessage)
         o.close()
@@ -173,7 +175,8 @@ async def chat_queue_processor(bot: hikari.GatewayBot = arc.inject()):
     if chat_queue.empty():
         return
     else:
-        chatmessage: PrintJSONPacketBase = chat_queue.get()
+        chat = chat_queue.get()
+        chatmessage: PrintJSONPacketBase = chat[1]
         bot.dispatch(MainChannelMessageEvent(app=bot, content=chatmessage.data[0].text))
 
 
