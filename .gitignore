@@ -13,3 +13,8 @@ dist/
 data/
 __pycache__/
 archi-bot.db
+
+
+# Added by cargo
+
+/target

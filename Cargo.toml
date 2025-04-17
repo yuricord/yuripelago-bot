@@ -1,0 +1,9 @@
+[package]
+name = "archi-bot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+poise = "0.6.1"
+sea-orm = { version = "1.1.10", features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-json"] }
+tokio = "1.44.2"
