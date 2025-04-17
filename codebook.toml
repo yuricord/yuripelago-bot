@@ -1,7 +1,22 @@
 dictionaries = []
 words = [
+    "aiofiles",
+    "archi",
+    "beautifulsoup",
+    "bot's",
     "clearreg",
+    "dotenv",
+    "hikari",
+    "miru",
+    "orjson",
+    "pprv",
+    "pydantic",
+    "setuptools",
+    "sqlmodel",
     "tanjun",
+    "uvloop",
+    "venv",
+    "wpd",
 ]
 flag_words = []
 ignore_paths = []

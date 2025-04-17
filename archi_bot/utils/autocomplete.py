@@ -1,6 +1,4 @@
-"""
-Custom hikari-arc autocomplete functions for archi_bot
-"""
+"""Custom hikari-arc autocomplete functions for archi_bot commands."""
 
 import arc
 
@@ -37,5 +35,5 @@ async def autocomplete_registered_slot_names(
         return []
     if not data.focused_value:
         return list(initial_slots)
-    else:
-        return [s for s in initial_slots if data.focused_value in s]
+
+    return [s for s in initial_slots if data.focused_value in s]

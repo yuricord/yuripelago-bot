@@ -7,20 +7,14 @@ import miru
 
 from archi_bot.tracker_client import TrackerClient
 from archi_bot.vars import (
-    ArchInfo,
     ArchServerURL,
     ArchTrackerURL,
-    AutomaticSetup,
     DeathFileLocation,
-    DeathTimecodeLocation,
     DebugMode,
-    DiscordAlertUserID,
     DiscordBroadcastChannel,
     DiscordDebugChannel,
     ItemQueueDirectory,
-    JoinMessage,
     OutputFileLocation,
-    RegistrationDirectory,
 )
 
 
@@ -38,7 +32,7 @@ def owner_hook(ctx: arc.Context[Any]) -> arc.HookResult:
         return arc.HookResult(abort=True)
 
 
-class DebugPacketModal(miru.Modal, title="Example Title"):
+class DebugPacketModal(miru.Modal, title="Send Arbitrary Packet"):
     packet = miru.TextInput(
         label="Packet Contents",
         value="{'cmd': 'INPUT', 'data': []}",
@@ -67,31 +61,24 @@ plugin.add_hook(owner_hook)
 
 
 @plugin.include
-@arc.slash_command("archinfo", "DEBUG: Print all bot info to console.")
-async def archinfo_command(ctx: arc.GatewayContext):
+@arc.slash_command("archi_info", "DEBUG: Print all bot info to console.")
+async def archi_info_command(ctx: arc.GatewayContext):
     print(DiscordBroadcastChannel)
-    print(DiscordAlertUserID)
-    print(ArchInfo)
     print(ArchTrackerURL)
     print(ArchServerURL)
     print(OutputFileLocation)
     print(DeathFileLocation)
-    print(DeathTimecodeLocation)
-    print(RegistrationDirectory)
     print(ItemQueueDirectory)
-    print(JoinMessage)
     print(DiscordDebugChannel)
-    print(AutomaticSetup)
     print(DebugMode)
 
 
 @plugin.include
 @arc.slash_command(
-    "sendpacket", "DEBUG: Send arbitrary packet to the Archipelago server."
+    "send_packet", "DEBUG: Send arbitrary packet to the Archipelago server."
 )
-async def sendpacket_command(
+async def send_packet_command(
     ctx: arc.GatewayContext,
-    ap_client: TrackerClient = arc.inject(),
     miru_client: miru.Client = arc.inject(),
 ) -> None:
     modal = DebugPacketModal()

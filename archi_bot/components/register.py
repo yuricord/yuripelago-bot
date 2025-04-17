@@ -60,7 +60,7 @@ async def register_command(
                     select(DiscordSlotLink).where(
                         DiscordSlotLink.slot_id == archi_slot.global_id,
                         DiscordSlotLink.discord_id == discord_user.id,
-                    )
+                    ),
                 ).one()
             except NotFoundError:
                 # No registration for this player+slot, so register them
@@ -75,8 +75,9 @@ async def register_command(
                 await ctx.respond("You're already registered for this slot!")
                 return
     except Exception as e:
-        print(e)
-        bot.dispatch(DebugMessageEvent(app=bot, content="Error with Registration"))
+        bot.dispatch(
+            DebugMessageEvent(app=bot, content=f"Error with Registration ```{e}```")
+        )
 
 
 @plugin.include

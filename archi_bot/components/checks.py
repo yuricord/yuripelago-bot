@@ -1,12 +1,13 @@
-import os
+from pathlib import Path
 
 import arc
 import hikari
-import requests
+from aiofiles import open
 from bs4 import BeautifulSoup
+from httpx import AsyncClient
 
 from archi_bot.events import DebugMessageEvent
-from archi_bot.vars import ArchTrackerURL, DiscordAlertUserID, ItemQueueDirectory
+from archi_bot.vars import ArchTrackerURL, ItemQueueDirectory
 
 plugin = arc.GatewayPlugin("checks")
 
@@ -20,16 +21,15 @@ async def groupcheck_command(
 ):
     dm_channel = await ctx.author.fetch_dm_channel()
     try:
-        ItemQueueFile = ItemQueueDirectory + slot + ".csv"
-        if not os.path.isfile(ItemQueueFile):
-            await dm_channel.send("There are no items for " + slot + " :/")
+        item_queue_file = Path(ItemQueueDirectory) / f"{slot}.csv"
+        if not item_queue_file.is_file():
+            await dm_channel.send(f"There are no items for {slot}!")
         else:
-            k = open(ItemQueueFile, "r")
-            ItemQueueLines = k.readlines()
-            k.close()
+            async with open(item_queue_file) as f:
+                item_queue_lines = await f.readlines()
 
             message = "```You || Item || Sender || Location \n"
-            for line in ItemQueueLines:
+            for line in item_queue_lines:
                 message = message + line
                 if len(message) > 1900:
                     message = message + "```"
@@ -41,7 +41,13 @@ async def groupcheck_command(
         print(e)
         bot.dispatch(
             DebugMessageEvent(
-                app=bot, content=f"ERROR IN GROUPCHECK <@{DiscordAlertUserID}>"
+                app=bot,
+                content=f"""
+                    Error with Group Check command:
+                    ```
+                    {e}
+                    ```
+                """,
             )
         )
 
@@ -53,22 +59,24 @@ async def checkcount_command(
     bot: hikari.GatewayBot = arc.inject(),
 ):
     try:
-        page = requests.get(ArchTrackerURL)
+        req_sess = AsyncClient()
+        page = await req_sess.get(ArchTrackerURL)
         soup = BeautifulSoup(page.content, "html.parser")
+        await req_sess.aclose()
 
         # Yoinks table rows from the checks table
         tables = soup.find("table", id="checks-table")
         for slots in tables.find_all("tbody"):
             rows = slots.find_all("tr")
 
-        SlotWidth = 0
-        GameWidth = 0
-        StatusWidth = 0
-        ChecksWidth = 0
-        SlotArray = [0]
-        GameArray = [0]
-        StatusArray = [0]
-        ChecksArray = [0]
+        slot_width = 0
+        game_width = 0
+        status_width = 0
+        checks_width = 0
+        slot_array = [0]
+        game_array = [0]
+        status_array = [0]
+        checks_array = [0]
 
         # Moves through rows for data
         for row in rows:
@@ -77,20 +85,20 @@ async def checkcount_command(
             status = (row.find_all("td")[3].text).strip()
             checks = (row.find_all("td")[4].text).strip()
 
-            SlotArray.append(len(slot))
-            GameArray.append(len(game))
-            StatusArray.append(len(status))
-            ChecksArray.append(len(checks))
+            slot_array.append(len(slot))
+            game_array.append(len(game))
+            status_array.append(len(status))
+            checks_array.append(len(checks))
 
-        SlotArray.sort(reverse=True)
-        GameArray.sort(reverse=True)
-        StatusArray.sort(reverse=True)
-        ChecksArray.sort(reverse=True)
+        slot_array.sort(reverse=True)
+        game_array.sort(reverse=True)
+        status_array.sort(reverse=True)
+        checks_array.sort(reverse=True)
 
-        SlotWidth = SlotArray[0]
-        GameWidth = GameArray[0]
-        StatusWidth = StatusArray[0]
-        ChecksWidth = ChecksArray[0]
+        slot_width = slot_array[0]
+        game_width = game_array[0]
+        status_width = status_array[0]
+        checks_width = checks_array[0]
 
         slot = "Slot"
         game = "Game"
@@ -101,11 +109,11 @@ async def checkcount_command(
         # Preps check message
         checkmessage = (
             "```"
-            + slot.ljust(SlotWidth)
+            + slot.ljust(slot_width)
             + " || "
-            + game.ljust(GameWidth)
+            + game.ljust(game_width)
             + " || "
-            + checks.ljust(ChecksWidth)
+            + checks.ljust(checks_width)
             + " || "
             + percent
             + "\n"
@@ -119,11 +127,11 @@ async def checkcount_command(
             percent = (row.find_all("td")[5].text).strip()
             checkmessage = (
                 checkmessage
-                + slot.ljust(SlotWidth)
+                + slot.ljust(slot_width)
                 + " || "
-                + game.ljust(GameWidth)
+                + game.ljust(game_width)
                 + " || "
-                + checks.ljust(ChecksWidth)
+                + checks.ljust(checks_width)
                 + " || "
                 + percent
                 + "\n"
@@ -140,7 +148,13 @@ async def checkcount_command(
         print(e)
         bot.dispatch(
             DebugMessageEvent(
-                app=bot, content=f"ERROR IN CHECKCOUNT <@{DiscordAlertUserID}>"
+                app=bot,
+                content=f"""
+                    Error with Check Count command:
+                    ```
+                    {e}
+                    ```
+                """,
             )
         )
 

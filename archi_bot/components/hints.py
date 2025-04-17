@@ -3,24 +3,34 @@ import os
 import arc
 import hikari
 import hikari.messages
-import requests
 from bs4 import BeautifulSoup
+from httpx import AsyncClient
+from sqlalchemy import Engine
 
 from archi_bot.events import DebugMessageEvent
-from archi_bot.vars import ArchTrackerURL, RegistrationDirectory
+from archi_bot.utils import get_rando_game
+from archi_bot.utils.slots import get_slots_for_player
+from archi_bot.vars import ArchTrackerURL
 
 plugin = arc.GatewayPlugin("hints")
 
 
 @plugin.include
 @arc.slash_command("hints", "Sends you all your hints.")
-async def hints_command(ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.inject()):
+async def hints_command(
+    ctx: arc.GatewayContext,
+    bot: hikari.GatewayBot = arc.inject(),
+    db: Engine = arc.inject(),
+):
     await ctx.defer(flags=hikari.messages.MessageFlag.LOADING)
     try:
         dm_channel = await ctx.author.fetch_dm_channel()
+        rows = None
 
-        page = requests.get(ArchTrackerURL)
+        sess = AsyncClient()
+        page = await sess.get(ArchTrackerURL)
         soup = BeautifulSoup(page.content, "html.parser")
+        await sess.aclose()
 
         # Yoinks table rows from the checks table
         tables = soup.find("table", id="hints-table")
@@ -28,33 +38,42 @@ async def hints_command(ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.in
         for slots in tables.find_all("tbody"):
             rows = slots.find_all("tr")
 
-        RegistrationFile = RegistrationDirectory + str(ctx.author.id) + ".csv"
-        if not os.path.isfile(RegistrationFile):
+        if not rows:
+            await ctx.respond(
+                "Error: Exception fetching hints. Please try again in a bit!"
+            )
+            return
+
+        rando_game = get_rando_game(ctx.channel_id)
+        if rando_game == "NoSuchGame":
+            await ctx.respond(
+                "Error: No registered game for this channel. Please ensure you're running this in the game's channel!"
+            )
+            return
+        slots = get_slots_for_player(rando_game.room.id, ctx.author.id)
+        if not slots:
             await dm_channel.send("You're not registered to any slots!")
         else:
-            r = open(RegistrationFile, "r")
-            RegistrationLines = r.readlines()
-            r.close()
-            for reglines in RegistrationLines:
-                message = (
-                    "**Here are all of the hints assigned to "
-                    + reglines.strip()
-                    + ":**"
-                )
-                await dm_channel.send(message)
+            message = f"""
+            **Here are all of the hints assigned to
+            {",".join(slots)}
+            **:
+            """
+            await dm_channel.send(message)
 
-                FinderWidth = 0
-                ReceiverWidth = 0
-                ItemWidth = 0
-                LocationWidth = 0
-                GameWidth = 0
-                EntranceWidth = 0
-                FinderArray = [0]
-                ReceiverArray = [0]
-                ItemArray = [0]
-                LocationArray = [0]
-                GameArray = [0]
-                EntranceArray = [0]
+            for slot in slots:
+                finder_width = 0
+                receiver_width = 0
+                item_width = 0
+                location_width = 0
+                game_width = 0
+                entrance_width = 0
+                finder_array = [0]
+                reciever_array = [0]
+                item_array = [0]
+                location_array = [0]
+                game_array = [0]
+                entrance_array = [0]
 
                 # Moves through rows for data
                 for row in rows:
@@ -69,27 +88,27 @@ async def hints_command(ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.in
                     game = (row.find_all("td")[4].text).strip()
                     entrance = (row.find_all("td")[5].text).strip()
 
-                    if reglines.strip() == finder:
-                        FinderArray.append(len(finder))
-                        ReceiverArray.append(len(receiver))
-                        ItemArray.append(len(item))
-                        LocationArray.append(len(location))
-                        GameArray.append(len(game))
-                        EntranceArray.append(len(entrance))
+                    if slot == finder:
+                        finder_array.append(len(finder))
+                        reciever_array.append(len(receiver))
+                        item_array.append(len(item))
+                        location_array.append(len(location))
+                        game_array.append(len(game))
+                        entrance_array.append(len(entrance))
 
-                FinderArray.sort(reverse=True)
-                ReceiverArray.sort(reverse=True)
-                ItemArray.sort(reverse=True)
-                LocationArray.sort(reverse=True)
-                GameArray.sort(reverse=True)
-                EntranceArray.sort(reverse=True)
+                finder_array.sort(reverse=True)
+                reciever_array.sort(reverse=True)
+                item_array.sort(reverse=True)
+                location_array.sort(reverse=True)
+                game_array.sort(reverse=True)
+                entrance_array.sort(reverse=True)
 
-                FinderWidth = FinderArray[0]
-                ReceiverWidth = ReceiverArray[0]
-                ItemWidth = ItemArray[0]
-                LocationWidth = LocationArray[0]
-                GameWidth = GameArray[0]
-                EntranceWidth = EntranceArray[0]
+                finder_width = finder_array[0]
+                receiver_width = reciever_array[0]
+                item_width = item_array[0]
+                location_width = location_array[0]
+                game_width = game_array[0]
+                entrance_width = entrance_array[0]
 
                 finder = "Finder"
                 receiver = "Receiver"
@@ -101,15 +120,15 @@ async def hints_command(ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.in
                 # Preps check message
                 checkmessage = (
                     "```"
-                    + finder.ljust(FinderWidth)
+                    + finder.ljust(finder_width)
                     + " || "
-                    + receiver.ljust(ReceiverWidth)
+                    + receiver.ljust(receiver_width)
                     + " || "
-                    + item.ljust(ItemWidth)
+                    + item.ljust(item_width)
                     + " || "
-                    + location.ljust(LocationWidth)
+                    + location.ljust(location_width)
                     + " || "
-                    + game.ljust(GameWidth)
+                    + game.ljust(game_width)
                     + " || "
                     + entrance
                     + "\n"
@@ -126,37 +145,34 @@ async def hints_command(ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.in
                     game = (row.find_all("td")[4].text).strip()
                     entrance = (row.find_all("td")[5].text).strip()
 
-                    if reglines.strip() == finder:
+                    if slot == finder:
                         checkmessage = (
                             checkmessage
-                            + finder.ljust(FinderWidth)
+                            + finder.ljust(finder_width)
                             + " || "
-                            + receiver.ljust(ReceiverWidth)
+                            + receiver.ljust(receiver_width)
                             + " || "
-                            + item.ljust(ItemWidth)
+                            + item.ljust(item_width)
                             + " || "
-                            + location.ljust(LocationWidth)
+                            + location.ljust(location_width)
                             + " || "
-                            + game.ljust(GameWidth)
+                            + game.ljust(game_width)
                             + " || "
                             + entrance
                             + "\n"
                         )
 
-                    if len(checkmessage) > 1500:
-                        checkmessage = checkmessage + "```"
-                        await dm_channel.send(checkmessage)
-                        checkmessage = "```"
+                if len(checkmessage) > 1500:
+                    checkmessage = checkmessage + "```"
+                    await dm_channel.send(checkmessage)
+                    checkmessage = "```"
 
                 # Caps off the message
                 checkmessage = checkmessage + "```"
                 await dm_channel.send(checkmessage)
     except Exception as e:
-        print(e)
         bot.dispatch(
-            DebugMessageEvent(
-                app=bot, content="ERROR IN HINTLIST <@" + DiscordAlertUserID + ">"
-            )
+            DebugMessageEvent(app=bot, content=f"Error listing hints ```{e}```")
         )
 
 

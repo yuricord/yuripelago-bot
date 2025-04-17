@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Literal, Optional, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +11,7 @@ from archi_bot.models.server import (
     ArchiNetworkSlot,
 )
 from archi_bot.types import (
-    ConnectionRefusedError,
+    ArchiConnectionRefusedError,
     MessageCommand,
     Permission,
     PrintJsonType,
@@ -35,7 +35,7 @@ class RoomInfoPacket(BaseModel):
 
 class ConnectionRefusedPacket(BaseModel):
     cmd: Literal[MessageCommand.CONNECTION_REFUSED]
-    errors: Optional[list[ConnectionRefusedError]]
+    errors: list[ArchiConnectionRefusedError] | None
 
 
 class ConnectedPacket(BaseModel):
@@ -45,7 +45,7 @@ class ConnectedPacket(BaseModel):
     players: list[ArchiNetworkPlayer]
     missing_locations: list[int]
     checked_locations: list[int]
-    slot_data: Optional[dict[str, Any]]
+    slot_data: dict[str, Any] | None = None
     slot_info: dict[int, ArchiNetworkSlot]
     hint_points: int
 
@@ -63,8 +63,8 @@ class LocationInfoPacket(BaseModel):
 
 class RoomUpdatePacket(BaseModel):
     cmd: Literal[MessageCommand.ROOM_UPDATE]
-    players: Optional[list[ArchiNetworkPlayer]]
-    checked_locations: Optional[list[int]]
+    players: list[ArchiNetworkPlayer] | None
+    checked_locations: list[int] | None
 
 
 class DataPackagePacket(BaseModel):
@@ -74,16 +74,16 @@ class DataPackagePacket(BaseModel):
 
 class BouncedPacket(BaseModel):
     cmd: Literal[MessageCommand.BOUNCED]
-    games: Optional[list[str]] = None
-    slots: Optional[list[int]] = None
-    tags: Optional[list[str]] = None
+    games: list[str] | None = None
+    slots: list[int] | None = None
+    tags: list[str] | None = None
     data: dict[Any, Any]
 
 
 class InvalidPacketPacket(BaseModel):
     cmd: Literal[MessageCommand.INVALID_PACKET]
     type: str
-    original_cmd: Optional[str]
+    original_cmd: str | None
     text: str
 
 
@@ -197,40 +197,36 @@ class PJCountdownPacket(PrintJSONPacketBase):
 
 
 PrintJSONPacket = Annotated[
-    Union[
-        PJItemSendPacket,
-        PJItemCheatPacket,
-        PJHintPacket,
-        PJJoinPacket,
-        PJPartPacket,
-        PJChatPacket,
-        PJServerChatPacket,
-        PJTutorialPacket,
-        PJTagsChangedPacket,
-        PJCommandResultPacket,
-        PJAdminCommandResultPacket,
-        PJGoalPacket,
-        PJReleasePacket,
-        PJCollectPacket,
-        PJCountdownPacket,
-    ],
+    PJItemSendPacket
+    | PJItemCheatPacket
+    | PJHintPacket
+    | PJJoinPacket
+    | PJPartPacket
+    | PJChatPacket
+    | PJServerChatPacket
+    | PJTutorialPacket
+    | PJTagsChangedPacket
+    | PJCommandResultPacket
+    | PJAdminCommandResultPacket
+    | PJGoalPacket
+    | PJReleasePacket
+    | PJCollectPacket
+    | PJCountdownPacket,
     Field(discriminator="type"),
 ]
 
 ArchiPacket = Annotated[
-    Union[
-        RoomInfoPacket,
-        ConnectionRefusedPacket,
-        ConnectedPacket,
-        ReceivedItemsPacket,
-        LocationInfoPacket,
-        RoomUpdatePacket,
-        PrintJSONPacket,
-        DataPackagePacket,
-        BouncedPacket,
-        InvalidPacketPacket,
-        RetrievedPacket,
-        SetReplyPacket,
-    ],
+    RoomInfoPacket
+    | ConnectionRefusedPacket
+    | ConnectedPacket
+    | ReceivedItemsPacket
+    | LocationInfoPacket
+    | RoomUpdatePacket
+    | PrintJSONPacket
+    | DataPackagePacket
+    | BouncedPacket
+    | InvalidPacketPacket
+    | RetrievedPacket
+    | SetReplyPacket,
     Field(discriminator="cmd"),
 ]

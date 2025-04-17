@@ -1,92 +1,98 @@
 import os
+from pathlib import Path
 
 import arc
 import hikari
+from aiofiles import open
 
 from archi_bot.events import DebugMessageEvent
-from archi_bot.vars import DiscordAlertUserID, ItemQueueDirectory, RegistrationDirectory
+from archi_bot.utils import get_rando_game
+from archi_bot.utils.slots import get_slots_for_player
+from archi_bot.vars import ItemQueueDirectory
 
 plugin = arc.GatewayPlugin("catchup")
 
 
 @plugin.include
 @arc.slash_command(
-    "catchup", "Catch up on missed checks(since you last ran this command!)"
+    "catchup",
+    "Catch up on missed checks since you last ran this command",
 )
 async def catchup_command(
     ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.inject()
-):
+) -> None:
     try:
         dm_channel = await ctx.author.fetch_dm_channel()
-        RegistrationFile = RegistrationDirectory + str(ctx.author.id) + ".csv"
-        if not os.path.isfile(RegistrationFile):
-            await dm_channel.send("You've not registered for a slot : (")
+        rando_game = get_rando_game(ctx.channel_id)
+        if rando_game == "NoSuchGame":
+            await ctx.respond(
+                "Please make sure you're running this in the game's assigned channel!"
+            )
+            return
+        slots = get_slots_for_player(rando_game.room.id, ctx.author.id)
+        if not slots:
+            await dm_channel.send("You're not registered for any slots in this game!")
         else:
-            r = open(RegistrationFile, "r")
-            RegistrationLines = r.readlines()
-            r.close()
-            for reglines in RegistrationLines:
-                ItemQueueFile = ItemQueueDirectory + reglines.strip() + ".csv"
-                if not os.path.isfile(ItemQueueFile):
-                    await dm_channel.send(
-                        "There are no items for " + reglines.strip() + " :/"
-                    )
+            for slot in slots:
+                item_queue_file = Path(ItemQueueDirectory) / f"{slot}.csv"
+                if not item_queue_file.is_file():
+                    await dm_channel.send(f"There are no items for {slot}!")
                     continue
-                k = open(ItemQueueFile, "r")
-                ItemQueueLines = k.readlines()
-                k.close()
-                os.remove(ItemQueueFile)
+                async with open(item_queue_file) as f:
+                    item_queue_lines = await f.readlines()
 
-                YouWidth = 0
-                ItemWidth = 0
-                SenderWidth = 0
-                YouArray = [0]
-                ItemArray = [0]
-                SenderArray = [0]
+                item_queue_file.unlink()
 
-                for line in ItemQueueLines:
-                    YouArray.append(len(line.split("||")[0]))
-                    ItemArray.append(len(line.split("||")[1]))
-                    SenderArray.append(len(line.split("||")[2]))
+                you_width = 0
+                item_width = 0
+                sender_width = 0
+                you_array = [0]
+                item_array = [0]
+                sender_array = [0]
 
-                YouArray.sort(reverse=True)
-                ItemArray.sort(reverse=True)
-                SenderArray.sort(reverse=True)
+                for line in item_queue_lines:
+                    you_array.append(len(line.split("||")[0]))
+                    item_array.append(len(line.split("||")[1]))
+                    sender_array.append(len(line.split("||")[2]))
 
-                YouWidth = YouArray[0]
-                ItemWidth = ItemArray[0]
-                SenderWidth = SenderArray[0]
+                you_array.sort(reverse=True)
+                item_array.sort(reverse=True)
+                sender_array.sort(reverse=True)
 
-                You = "You"
-                Item = "Item"
-                Sender = "Sender"
-                Location = "Location"
+                you_width = you_array[0]
+                item_width = item_array[0]
+                sender_width = sender_array[0]
+
+                you = "You"
+                item = "Item"
+                sender = "Sender"
+                location = "Location"
 
                 catchup_message = (
                     "```"
-                    + You.ljust(YouWidth)
+                    + you.ljust(you_width)
                     + " || "
-                    + Item.ljust(ItemWidth)
+                    + item.ljust(item_width)
                     + " || "
-                    + Sender.ljust(SenderWidth)
+                    + sender.ljust(sender_width)
                     + " || "
-                    + Location
+                    + location
                     + "\n"
                 )
-                for line in ItemQueueLines:
-                    You = line.split("||")[0].strip()
-                    Item = line.split("||")[1].strip()
-                    Sender = line.split("||")[2].strip()
-                    Location = line.split("||")[3].strip()
+                for line in item_queue_lines:
+                    you = line.split("||")[0].strip()
+                    item = line.split("||")[1].strip()
+                    sender = line.split("||")[2].strip()
+                    location = line.split("||")[3].strip()
                     catchup_message = (
                         catchup_message
-                        + You.ljust(YouWidth)
+                        + you.ljust(you_width)
                         + " || "
-                        + Item.ljust(ItemWidth)
+                        + item.ljust(item_width)
                         + " || "
-                        + Sender.ljust(SenderWidth)
+                        + sender.ljust(sender_width)
                         + " || "
-                        + Location
+                        + location
                         + "\n"
                     )
 
@@ -100,7 +106,13 @@ async def catchup_command(
         print(e)
         bot.dispatch(
             DebugMessageEvent(
-                app=bot, content=f"ERROR IN CATCHUP <@{DiscordAlertUserID}>"
+                app=bot,
+                content=f"""
+                Error with CatchUp:
+                ```
+                {e}
+                ```
+                """,
             )
         )
 

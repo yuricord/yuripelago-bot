@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -29,12 +29,12 @@ class ArchiNetworkItem(BaseModel):
 
 
 class ArchiJSONMessagePart(BaseModel):
-    type: Optional[str] = None
-    text: Optional[str] = None
-    color: Optional[str] = None
-    flags: Optional[int] = None
-    player: Optional[int] = None
-    hint_status: Optional[HintStatus] = None
+    type: str | None = None
+    text: str | None = None
+    color: str | None = None
+    flags: int | None = None
+    player: int | None = None
+    hint_status: HintStatus | None = None
 
 
 class ArchiGameData(BaseModel):

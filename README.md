@@ -86,7 +86,6 @@ Hopefully that makes sense.
 |**Discord Config**||
 |DiscordToken|Your Discord Bot's token|
 |DiscordBroadcastChannel|Discord Channel ID for live-check purposes|
-|DiscordAlertUserID|Discord User/Group ID for yelling about issues%|
 |DiscordDebugChannel|Discord channel ID for debug purposes|
 |**Archipelago Config**||
 |ArchipelagoServer|The URL of the Archipelago server you'd like to connect to|

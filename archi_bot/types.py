@@ -17,7 +17,7 @@ class MessageCommand(StrEnum):
     SET_REPLY = "SetReply"
 
 
-class ConnectionRefusedError(StrEnum):
+class ArchiConnectionRefusedError(StrEnum):
     INVALID_SLOT = "InvalidSlot"
     INVALID_GAME = "InvalidGame"
     INCOMPATIBLE_VERSION = "IncompatibleVersion"

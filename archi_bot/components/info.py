@@ -1,8 +1,9 @@
 import arc
 import hikari
+from aiofiles import open
 
-from archi_bot.events import DebugMessageEvent, MainChannelMessageEvent
-from archi_bot.vars import DeathFileLocation, DiscordAlertUserID
+from archi_bot.events import DebugMessageEvent
+from archi_bot.vars import DeathFileLocation
 
 plugin = arc.GatewayPlugin("info")
 
@@ -13,35 +14,32 @@ async def deathcount_command(
     ctx: arc.GatewayContext, bot: hikari.GatewayBot = arc.inject()
 ):
     try:
-        d = open(DeathFileLocation, "r")
-        DeathLines = d.readlines()
-        d.close()
-        deathdict = {}
-        for deathline in DeathLines:
-            DeathUser = deathline.split("||")[6]
-            DeathUser = DeathUser.split("\n")[0]
+        async with open(DeathFileLocation) as d:
+            death_lines = await d.readlines()
+        death_dict = {}
+        for deathline in death_lines:
+            death_user = deathline.split("||")[6]
+            death_user = death_user.split("\n")[0]
 
-            if not DeathUser in deathdict:
-                deathdict[DeathUser] = 1
+            if death_user not in death_dict:
+                death_dict[death_user] = 1
             else:
-                deathdict[DeathUser] = deathdict[DeathUser] + 1
+                death_dict[death_user] = death_dict[death_user] + 1
 
-        deathdict = {key: value for key, value in sorted(deathdict.items())}
-        deathnames = []
-        deathcounts = []
+        death_dict = dict(sorted(death_dict.items()))
+        death_names = []
+        death_counts = []
         message = "**Death Counter:**\n```"
-        deathkeys = deathdict.keys()
+        deathkeys = death_dict.keys()
         for key in deathkeys:
-            deathnames.append(str(key))
-            deathcounts.append(int(deathdict[key]))
-            message = message + "\n" + str(key) + ": " + str(deathdict[key])
+            death_names.append(str(key))
+            death_counts.append(int(death_dict[key]))
+            message = message + "\n" + str(key) + ": " + str(death_dict[key])
         message = message + "```"
         await ctx.respond(message)
-    except:
+    except Exception as e:
         bot.dispatch(
-            DebugMessageEvent(
-                app=bot, content=f"ERROR WITH DEATHCOUNT <@{DiscordAlertUserID}>"
-            )
+            DebugMessageEvent(app=bot, content=f"Error with DeathCount ```{e}```")
         )
 
 

@@ -1,16 +1,13 @@
 import json
 import time
+from typing import TYPE_CHECKING
 
 import arc
 import hikari
-import requests
+from aiofiles import open
+from httpx import AsyncClient
 
 from archi_bot.events import DebugMessageEvent, MainChannelMessageEvent
-from archi_bot.models.packets import (
-    BouncedPacket,
-    PJItemSendPacket,
-    PrintJSONPacketBase,
-)
 from archi_bot.utils import (
     get_archi_game_name,
     get_archi_item,
@@ -22,7 +19,6 @@ from archi_bot.vars import (
     ArchPort,
     ArchServerURL,
     DeathFileLocation,
-    DiscordAlertUserID,
     ItemQueueDirectory,
     OutputFileLocation,
     SpoilTraps,
@@ -31,6 +27,14 @@ from archi_bot.vars import (
     item_queue,
 )
 
+if TYPE_CHECKING:
+    from archi_bot.models.packets import (
+        BouncedPacket,
+        PJItemSendPacket,
+        PrintJSONPacketBase,
+    )
+
+
 plugin = arc.GatewayPlugin("tasks")
 
 
@@ -38,24 +42,32 @@ plugin = arc.GatewayPlugin("tasks")
 @plugin.inject_dependencies
 async def archi_host_checker(bot: hikari.GatewayBot = arc.inject()):
     try:
-        ArchRoomID = ArchServerURL.split("/")
-        ArchAPIURL = ArchServerURL.split("/room/")
-        RoomAPI = ArchAPIURL[0] + "/api/room_status/" + ArchRoomID[4]
-        RoomPage = requests.get(RoomAPI)
-        RoomData = json.loads(RoomPage.content)
+        req_sess = AsyncClient()
+        room_id = ArchServerURL.split("/")[4]
+        api_url = ArchServerURL.split("/room/")
+        room_api = api_url[0] + "/api/room_status/" + room_id
+        room_page = await req_sess.get(room_api)
+        room_data = json.loads(room_page.content)
+        await req_sess.aclose()
 
-        cond = str(RoomData["last_port"])
+        cond = str(room_data["last_port"])
         if cond == ArchPort:
             return
-        else:
-            message = (
-                f"Port Check Failed - Restart tracker process <@{DiscordAlertUserID}>"
-            )
-            bot.dispatch(DebugMessageEvent(app=bot, content=message))
-    except:
+        message = f"""
+                Port Check for room {room_id} failed,
+                Please check its assigned port!
+            """
+        bot.dispatch(DebugMessageEvent(app=bot, content=message))
+    except Exception as e:
         bot.dispatch(
             DebugMessageEvent(
-                app=bot, content=f"ERROR IN CHECKARCHHOST <@{DiscordAlertUserID}>"
+                app=bot,
+                content=f"""
+                    Error with Archi Host Checker:
+                    ```
+                    {e}
+                    ```
+                """,
             )
         )
 
@@ -64,9 +76,7 @@ async def archi_host_checker(bot: hikari.GatewayBot = arc.inject()):
 @plugin.inject_dependencies
 async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
     try:
-        if item_queue.empty():
-            return
-        else:
+        while not item_queue.empty():
             timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
             item = item_queue.get()
             packet: PJItemSendPacket = item[1]
@@ -93,9 +103,8 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                     f"{sending_player}||{sent_item}||{sending_player}||{location}\n"
                 )
                 bot_log_message = f"{timecode}||{item_check_log_message}"
-                o = open(OutputFileLocation, "a")
-                o.write(bot_log_message)
-                o.close()
+                async with open(OutputFileLocation, "a") as o:
+                    await o.write(bot_log_message)
 
             elif packet.item.player != packet.receiving:
                 sending_game = get_archi_game_name(packet.item.player, room_id)
@@ -105,7 +114,9 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                 item_class = packet.item.flags
                 receiving_player = get_archi_slot_name(packet.receiving, room_id)
                 location = get_archi_location_name(
-                    sending_game, packet.item.location, room_id
+                    sending_game,
+                    packet.item.location,
+                    room_id,
                 )
 
                 message = f"""
@@ -118,26 +129,23 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                     f"{receiving_player}||{sent_item}||{sending_player}||{location}\n"
                 )
                 bot_log_message = f"{timecode}||{item_check_log_message}"
-                o = open(OutputFileLocation, "a")
-                o.write(bot_log_message)
-                o.close()
+                async with open(OutputFileLocation, "a") as o:
+                    await o.write(bot_log_message)
 
-                if int(item_class) == 4 and SpoilTraps == "true":
+                if item_class == 4 and SpoilTraps:
                     ItemQueueFile = ItemQueueDirectory + receiving_player + ".csv"
-                    i = open(ItemQueueFile, "a")
-                    i.write(item_check_log_message)
-                    i.close()
-                elif int(item_class) != 4:
+                    async with open(ItemQueueFile, "a") as i:
+                        await i.write(item_check_log_message)
+                elif item_class != 4:
                     ItemQueueFile = ItemQueueDirectory + receiving_player + ".csv"
-                    i = open(ItemQueueFile, "a")
-                    i.write(item_check_log_message)
-                    i.close()
+                    async with open(ItemQueueFile, "a") as i:
+                        await i.write(item_check_log_message)
             else:
                 message = "Unknown Item Send :("
                 print(message)
                 bot.dispatch(DebugMessageEvent(app=bot, content=message))
 
-            if item_class == 4 and SpoilTraps == "true":
+            if item_class == 4 and SpoilTraps:
                 bot.dispatch(MainChannelMessageEvent(app=bot, content=message))
             elif item_class != 4 and item_filter(item_class):
                 bot.dispatch(MainChannelMessageEvent(app=bot, content=message))
@@ -146,35 +154,32 @@ async def item_queue_processor(bot: hikari.GatewayBot = arc.inject()):
                 pass
 
     except Exception as e:
-        print(e)
         await bot.dispatch(
-            DebugMessageEvent(app=bot, content="Error In Item Queue Processor")
+            DebugMessageEvent(
+                app=bot,
+                content=f"Error In Item Queue Processor ```{e}```",
+            ),
         )
 
 
 @arc.utils.interval_loop(seconds=1)
 @plugin.inject_dependencies
 async def death_queue_processor(bot: hikari.GatewayBot = arc.inject()):
-    if death_queue.empty():
-        return
-    else:
+    while not death_queue.empty():
         death = death_queue.get()
         chatmessage: BouncedPacket = death[1]
         timecode = time.strftime("%Y||%m||%d||%H||%M||%S")
-        DeathMessage = f"**Deathlink received from: {chatmessage.data['source']}**"
-        DeathLogMessage = f"{timecode}||{chatmessage.data['source']}\n"
-        o = open(DeathFileLocation, "a")
-        o.write(DeathLogMessage)
-        o.close()
-        bot.dispatch(MainChannelMessageEvent(app=bot, content=DeathMessage))
+        death_message = f"**Deathlink received from: {chatmessage.data['source']}**"
+        death_log_message = f"{timecode}||{chatmessage.data['source']}\n"
+        async with open(DeathFileLocation, "a") as o:
+            await o.write(death_log_message)
+        bot.dispatch(MainChannelMessageEvent(app=bot, content=death_message))
 
 
 @arc.utils.interval_loop(seconds=1)
 @plugin.inject_dependencies
 async def chat_queue_processor(bot: hikari.GatewayBot = arc.inject()):
-    if chat_queue.empty():
-        return
-    else:
+    while not chat_queue.empty():
         chat = chat_queue.get()
         chatmessage: PrintJSONPacketBase = chat[1]
         bot.dispatch(MainChannelMessageEvent(app=bot, content=chatmessage.data[0].text))
@@ -187,7 +192,6 @@ def loader(client: arc.GatewayClient) -> None:
     @client.add_startup_hook
     async def start_tasks(client: arc.GatewayClient) -> None:
         print("Starting Loops")
-        archi_host_checker.start()
         item_queue_processor.start()
         death_queue_processor.start()
         chat_queue_processor.start()
@@ -195,7 +199,6 @@ def loader(client: arc.GatewayClient) -> None:
 
 @arc.unloader
 def unloader(client: arc.GatewayClient) -> None:
-    archi_host_checker.stop()
     item_queue_processor.stop()
     death_queue_processor.stop()
     chat_queue_processor.stop()
