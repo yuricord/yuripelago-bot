@@ -1,5 +1,7 @@
+use crate::{Context, Error};
+
 /// Show this help menu
-#[poise::command(pslash_command)]
+#[poise::command(slash_command)]
 pub async fn help(
     ctx: Context<'_>,
     #[description = "Specific command to show help about"]

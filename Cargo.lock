@@ -119,6 +119,7 @@ name = "archi-bot"
 version = "0.1.0"
 dependencies = [
  "archipelago_rs",
+ "dotenvy",
  "entity",
  "migration",
  "poise",
@@ -849,6 +850,7 @@ version = "0.1.0"
 dependencies = [
  "archipelago_rs",
  "sea-orm",
+ "serde",
 ]
 
 [[package]]

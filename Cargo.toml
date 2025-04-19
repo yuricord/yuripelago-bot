@@ -14,3 +14,4 @@ tokio = "1.44.2"
 
 entity = { path = "entity" }
 migration = {path="migration"}
+dotenvy = "0.15.7"

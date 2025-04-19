@@ -1,21 +1,50 @@
 #![warn(clippy::str_to_string)]
 
-mod commands;
+mod discord;
+use discord::commands;
 
 use poise::serenity_prelude as serenity;
-use sea_orm::Database;
-use std::{
-    collections::HashMap,
-    env::var,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use sea_orm::{ConnectOptions, Database, DatabaseConnection};
+use std::env::var;
+use std::time::Duration;
 
-use migration::Migrator;
+use migration::{Migrator, MigratorTrait};
 
 // Types used by all command functions
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
+
+pub struct DatabaseService {
+    pub connection: DatabaseConnection,
+}
+
+impl DatabaseService {
+    pub async fn init() -> Self {
+        let database_url = var("DATABASE_URL").unwrap();
+        let mut connection_options = ConnectOptions::new(database_url);
+        connection_options
+            .max_connections(100)
+            .min_connections(5)
+            .connect_timeout(Duration::from_secs(8))
+            .acquire_timeout(Duration::from_secs(8))
+            .idle_timeout(Duration::from_secs(8))
+            .max_lifetime(Duration::from_secs(8))
+            .sqlx_logging(false);
+
+        // test connection
+        #[allow(clippy::expect_used)]
+        let connection = Database::connect(connection_options)
+            .await
+            .expect("Can't connect to database");
+
+        Self { connection }
+    }
+}
+
+pub struct Data {
+    #[allow(dead_code)]
+    db: DatabaseService,
+}
 
 // Custom user data passed to all command functions
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
@@ -37,11 +66,13 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
-    let db = Database::connect("sqlite://archi-bot.db?mode=rwc").await?;
+    // Pull vars from .env file
+    dotenvy::dotenv().unwrap();
+
+    let db = DatabaseService::init().await;
 
     // Run Pending database migrations at startup
-    Migrator::up(db, None).await?;
+    Migrator::up(&db.connection, None).await.unwrap();
 
     // FrameworkOptions contains all of poise's configuration option in one struct
     // Every option can be omitted to use its default value
@@ -90,16 +121,15 @@ async fn main() {
             Box::pin(async move {
                 println!("Logged in as {}", _ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok()
+                Ok(Data { db })
             })
         })
         .options(options)
         .build();
 
     let token = var("DISCORD_TOKEN")
-        .expect("Missing `DISCORD_TOKEN` env var, see README for more information.");
-    let intents =
-        serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+        .expect("Missing `DISCORD_TOKEN`, please ensure you provide one in your .env!");
+    let intents = serenity::GatewayIntents::non_privileged();
 
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
