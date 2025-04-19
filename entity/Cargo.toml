@@ -1,16 +1,13 @@
 [package]
-name = "archi-bot"
+name = "entity"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+publish = false
 
-[workspace]
-members = [".", "entity", "migration"]
+[lib]
+name = "entity"
+path = "src/lib.rs"
 
 [dependencies]
 archipelago_rs = { git = "https://github.com/ryanisaacg/archipelago_rs", version = "0.1.0" }
-poise = "0.6.1"
 sea-orm = { version = "1.1.10", features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-json"] }
-tokio = "1.44.2"
-
-entity = { path = "entity" }
-migration = {path="migration"}

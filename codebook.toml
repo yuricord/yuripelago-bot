@@ -1,4 +1,3 @@
-dictionaries = []
 words = [
     "aiofiles",
     "archi",
@@ -11,6 +10,7 @@ words = [
     "orjson",
     "pprv",
     "pydantic",
+    "rando",
     "setuptools",
     "sqlmodel",
     "tanjun",
@@ -18,7 +18,3 @@ words = [
     "venv",
     "wpd",
 ]
-flag_words = []
-ignore_paths = []
-ignore_patterns = []
-use_global = true

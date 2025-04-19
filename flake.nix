@@ -19,12 +19,18 @@
 
       devShells.x86_64-linux.default = pkgs.mkShell {
         strictDeps = true;
+
+        buildInputs = [
+          pkgs.openssl
+          pkgs.pkg-config
+        ];
         nativeBuildInputs = [
           pkgs.just
           pkgs.rustup
           pkgs.rustPlatform.bindgenHook
           pkgs.nixfmt-rfc-style
           pkgs.sea-orm-cli
+          pkgs.pkg-config
         ];
       };
     };
