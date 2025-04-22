@@ -115,16 +115,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.98"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+
+[[package]]
 name = "archi-bot"
 version = "0.1.0"
 dependencies = [
- "archipelago_rs",
+ "anyhow",
+ "archi_client",
  "dotenvy",
  "entity",
  "migration",
  "poise",
  "sea-orm",
  "tokio",
+]
+
+[[package]]
+name = "archi_client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-tungstenite 0.17.2",
+ "tungstenite 0.17.3",
 ]
 
 [[package]]
