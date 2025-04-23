@@ -3,22 +3,17 @@
 // For a full list of overridable settings, and general information on folder-specific settings,
 // see the documentation: https://zed.dev/docs/configuring-zed#settings-files
 {
-  "languages": {
-    "Python": {
-      "language_servers": ["pyright", "ruff"],
-      "format_on_save": "on",
-      "formatter": [
-        {
-          "code_actions": {
-            "source.organizeImports.ruff": true
-          }
-        },
-        {
-          "language_server": {
-            "name": "ruff"
-          }
-        }
-      ]
+  "lsp": {
+    "cargo-tom": {
+      "initialization_options": {
+        "per_page": 10,
+        /// All, UnusedOpt, Features,
+        "feature_display_mode": "UnusedOpt",
+        "hide_docs_info_message": false,
+        "sort_format": false,
+        "stable_version": true,
+        "offline": false
+      }
     }
   }
 }
