@@ -26,9 +26,9 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default("archipelago.gg"),
                     )
-                    .col(small_unsigned(RandoGame::Port).not_null())
+                    .col(integer(RandoGame::Port).not_null())
                     .col(string(RandoGame::BotSlot).not_null().default("ArchiBot"))
-                    .col(big_unsigned(RandoGame::GameChannel).not_null())
+                    .col(big_integer(RandoGame::GameChannel).not_null())
                     .col(string(RandoGame::TrackerUrl).not_null())
                     .col(string(RandoGame::RoomUrl).not_null())
                     .col(boolean(RandoGame::SpoilTraps).not_null())

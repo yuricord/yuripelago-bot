@@ -13,7 +13,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(DiscordUser::Table)
                     .if_not_exists()
-                    .col(big_unsigned(DiscordUser::Id).primary_key().not_null())
+                    .col(big_integer(DiscordUser::Id).primary_key().not_null())
                     .to_owned(),
             )
             .await?;
@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
                     .table(DiscordSlotLink::Table)
                     .if_not_exists()
                     .col(integer(DiscordSlotLink::SlotId).not_null())
-                    .col(big_unsigned(DiscordSlotLink::DiscordId).not_null())
+                    .col(big_integer(DiscordSlotLink::DiscordId).not_null())
                     .primary_key(
                         Index::create()
                             .col(DiscordSlotLink::SlotId)

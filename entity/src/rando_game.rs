@@ -11,7 +11,7 @@ pub struct Model {
     pub display_name: String,
     pub room_id: String,
     pub server_url: String,
-    pub port: i16,
+    pub port: i32,
     pub bot_slot: String,
     pub game_channel: i64,
     pub tracker_url: String,

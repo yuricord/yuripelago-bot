@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                     .table(GameDataPackage::Table)
                     .if_not_exists()
                     .col(string(GameDataPackage::Name).primary_key().not_null())
-                    .col(string(GameDataPackage::PackageChecksum).not_null())
+                    .col(string(GameDataPackage::Checksum).not_null())
                     .to_owned(),
             )
             .await
@@ -29,5 +29,5 @@ impl MigrationTrait for Migration {
 pub enum GameDataPackage {
     Table,
     Name,
-    PackageChecksum,
+    Checksum,
 }
