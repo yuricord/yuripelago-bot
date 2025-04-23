@@ -1,7 +1,7 @@
 #![warn(clippy::str_to_string)]
 
-mod discord;
-use discord::commands;
+mod commands;
+mod utils;
 
 use poise::serenity_prelude as serenity;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
@@ -13,6 +13,7 @@ use migration::{Migrator, MigratorTrait};
 // Types used by all command functions
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
+type ApplicationContext<'a> = poise::ApplicationContext<'a, Data, Error>;
 
 pub struct DatabaseService {
     pub connection: DatabaseConnection,
@@ -29,7 +30,7 @@ impl DatabaseService {
             .acquire_timeout(Duration::from_secs(8))
             .idle_timeout(Duration::from_secs(8))
             .max_lifetime(Duration::from_secs(8))
-            .sqlx_logging(false);
+            .sqlx_logging(true);
 
         // test connection
         #[allow(clippy::expect_used)]
@@ -77,42 +78,20 @@ async fn main() {
     // FrameworkOptions contains all of poise's configuration option in one struct
     // Every option can be omitted to use its default value
     let options = poise::FrameworkOptions {
-        commands: vec![commands::help::help()],
+        commands: vec![
+            commands::help::help(),
+            commands::management::create_game(),
+            commands::management::deactivate_game(),
+        ],
+
         // The global error handler for all error cases that may occur
         on_error: |error| Box::pin(on_error(error)),
-        // This code is run before every command
-        pre_command: |ctx| {
-            Box::pin(async move {
-                println!("Executing command {}...", ctx.command().qualified_name);
-            })
-        },
-        // This code is run after a command if it was successful (returned Ok)
-        post_command: |ctx| {
-            Box::pin(async move {
-                println!("Executed command {}!", ctx.command().qualified_name);
-            })
-        },
-        // Every command invocation must pass this check to continue execution
-        command_check: Some(|ctx| {
-            Box::pin(async move {
-                if ctx.author().id == 123456789 {
-                    return Ok(false);
-                }
-                Ok(true)
-            })
-        }),
+
         // Enforce command checks even for owners (enforced by default)
         // Set to true to bypass checks, which is useful for testing
         skip_checks_for_owners: false,
-        event_handler: |_ctx, event, _framework, _data| {
-            Box::pin(async move {
-                println!(
-                    "Got an event in event handler: {:?}",
-                    event.snake_case_name()
-                );
-                Ok(())
-            })
-        },
+
+        // Set all other arguments to default
         ..Default::default()
     };
 
