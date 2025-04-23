@@ -9,7 +9,7 @@ name = "migration"
 path = "src/lib.rs"
 
 [dependencies]
-archipelago_rs = { git = "https://github.com/ryanisaacg/archipelago_rs", version = "0.1.0" }
+archi_client.workspace = true
 async-std = { version = "1", features = ["attributes", "tokio1"] }
 
 [dependencies.sea-orm-migration]

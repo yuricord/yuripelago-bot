@@ -9,6 +9,6 @@ name = "entity"
 path = "src/lib.rs"
 
 [dependencies]
-archipelago_rs = { git = "https://github.com/ryanisaacg/archipelago_rs", version = "0.1.0" }
-sea-orm = { version = "1.1.10", features = ["sqlx-sqlite", "runtime-tokio-rustls", "with-json"] }
-serde = "1.0.219"
+archi_client.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
