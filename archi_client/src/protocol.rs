@@ -92,8 +92,8 @@ pub struct NetworkSlot {
 pub fn network_version() -> NetworkVersion {
     NetworkVersion {
         major: 0,
-        minor: 3,
-        build: 7,
+        minor: 6,
+        build: 1,
         class: "Version".to_string(),
     }
 }
@@ -255,7 +255,7 @@ pub struct Connected {
     pub missing_locations: Vec<i32>,
     pub checked_locations: Vec<i32>,
     pub slot_data: Value,
-    pub slot_info: HashMap<String, NetworkSlot>, // TODO: docs claim this is an int key. they are lying?
+    pub slot_info: HashMap<i32, NetworkSlot>, // TODO: docs claim this is an int key. they are lying?
     pub hint_points: i32,
 }
 
@@ -338,15 +338,21 @@ pub enum PrintJSON {
         data: Vec<JSONMessagePart>,
         message: String,
     },
-    Tutorial { data: Vec<JSONMessagePart> },
+    Tutorial {
+        data: Vec<JSONMessagePart>,
+    },
     TagsChanged {
         data: Vec<JSONMessagePart>,
         team: i32,
         slot: i32,
         tags: Vec<String>,
     },
-    CommandResult { data: Vec<JSONMessagePart> },
-    AdminCommandResult { data: Vec<JSONMessagePart> },
+    CommandResult {
+        data: Vec<JSONMessagePart>,
+    },
+    AdminCommandResult {
+        data: Vec<JSONMessagePart>,
+    },
     Goal {
         data: Vec<JSONMessagePart>,
         team: i32,
@@ -437,12 +443,12 @@ pub struct DataPackage {
     pub data: DataPackageObject,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DataPackageObject {
     pub games: HashMap<String, GameData>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GameData {
     pub item_name_to_id: HashMap<String, i32>,
     pub location_name_to_id: HashMap<String, i32>,
