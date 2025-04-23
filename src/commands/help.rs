@@ -1,6 +1,6 @@
 use crate::{Context, Error};
 
-/// Show this help menu
+/// Get the help menu
 #[poise::command(slash_command)]
 pub async fn help(
     ctx: Context<'_>,
