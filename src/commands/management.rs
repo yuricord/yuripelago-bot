@@ -11,9 +11,26 @@ fn get_room_id(url: &String) -> String {
     let room_pieces: Vec<&str> = url.split("/").collect();
     return String::from(room_pieces[4]);
 }
-/// Register a game with Archi-Bot
 
-#[poise::command(slash_command, guild_only, required_permissions = "MANAGE_THREADS")]
+/// Top-level Game command
+#[poise::command(
+    slash_command,
+    guild_only,
+    required_permissions = "MANAGE_THREADS",
+    subcommands("create_game", "deactivate_game",)
+)]
+#[allow(unused_variables)]
+pub async fn parent(ctx: ApplicationContext<'_>, arg: String) -> Result<(), Error> {
+    Ok(())
+}
+
+/// Register a game with Archi-Bot
+#[poise::command(
+    slash_command,
+    guild_only,
+    required_permissions = "MANAGE_THREADS",
+    rename = "create"
+)]
 pub async fn create_game(
     ctx: ApplicationContext<'_>,
     #[description = "Server-provided port number for your game"] port: i32,
@@ -174,7 +191,12 @@ struct DeactivateModel {
     confirmation: String,
 }
 
-#[poise::command(slash_command, guild_only, required_permissions = "MANAGE_THREADS")]
+#[poise::command(
+    slash_command,
+    guild_only,
+    required_permissions = "MANAGE_THREADS",
+    rename = "deactivate"
+)]
 pub async fn deactivate_game(ctx: ApplicationContext<'_>) -> Result<(), Error> {
     let db = &ctx.data().db.connection;
     #[allow(unused_must_use)]
