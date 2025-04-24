@@ -131,6 +131,7 @@ dependencies = [
  "migration",
  "poise",
  "sea-orm",
+ "thiserror 2.0.12",
  "tokio",
 ]
 
