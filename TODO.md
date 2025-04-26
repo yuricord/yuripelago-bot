@@ -1,8 +1,9 @@
 - [ ] Implement commands
-  - Game Management
-    - [x] `/game create`
-    - [x] `/game deactivate`
-    - [ ] `/game reactivate`
+  - [x] Game Management
+    - [x] `/game create`(needs perms)
+    - [x] `/game deactivate`(needs perms)
+    - [x] `/game reactivate`(needs perms)
+    - [ ] `/game info`
   - Slot Management
     - [ ] `/slot register`
     - [ ] `/slot unregister`
