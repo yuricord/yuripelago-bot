@@ -3,26 +3,27 @@
 mod commands;
 mod utils;
 
+use anyhow::Error;
 use poise::serenity_prelude as serenity;
+use poise_error::on_error;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::env::var;
 use std::time::Duration;
+use tracing::info;
 
 use migration::{Migrator, MigratorTrait};
+use utils::{client_pool::ClientPool, settings::Settings};
 
 // Types used by all command functions
-type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 type ApplicationContext<'a> = poise::ApplicationContext<'a, Data, Error>;
 
 pub struct DatabaseService {
-    pub connection: DatabaseConnection,
+    pub conn: DatabaseConnection,
 }
 
 impl DatabaseService {
-    pub async fn init() -> Self {
-        let database_url = var("DATABASE_URL").unwrap();
-        let mut connection_options = ConnectOptions::new(database_url);
+    pub async fn init(url: String) -> Self {
+        let mut connection_options = ConnectOptions::new(url);
         connection_options
             .max_connections(100)
             .min_connections(5)
@@ -30,67 +31,60 @@ impl DatabaseService {
             .acquire_timeout(Duration::from_secs(8))
             .idle_timeout(Duration::from_secs(8))
             .max_lifetime(Duration::from_secs(8))
-            .sqlx_logging(true);
+            .sqlx_logging(false);
 
         // test connection
         #[allow(clippy::expect_used)]
-        let connection = Database::connect(connection_options)
+        let conn = Database::connect(connection_options)
             .await
             .expect("Can't connect to database");
 
-        Self { connection }
+        Self { conn }
     }
 }
 
 pub struct Data {
-    #[allow(dead_code)]
     db: DatabaseService,
+    #[allow(dead_code)]
+    config: Settings,
+    #[allow(dead_code)]
+    ap_clients: ClientPool,
 }
 
 // Custom user data passed to all command functions
-async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
-    // This is our custom error handler
-    // They are many errors that can occur, so we only handle the ones we want to customize
-    // and forward the rest to the default handler
-    match error {
-        poise::FrameworkError::Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
-        poise::FrameworkError::Command { error, ctx, .. } => {
-            println!("Error in command `{}`: {:?}", ctx.command().name, error,);
-        }
-        error => {
-            if let Err(e) = poise::builtins::on_error(error).await {
-                println!("Error while handling error: {}", e)
-            }
-        }
-    }
-}
-
 #[tokio::main]
 async fn main() {
-    // Pull vars from .env file
-    dotenvy::dotenv().unwrap();
+    // Start `tracing`
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            "info,\
+            archi_bot=debug,\
+            sea_orm=debug,\
+            archi_client=debug,\
+            poise_error=debug",
+        )
+        .init();
 
-    let db = DatabaseService::init().await;
+    // Load Configuration
+    let settings = Settings::new().unwrap();
+    let token = settings.discord_token.to_owned();
+
+    let db = DatabaseService::init(settings.database_url.to_owned()).await;
 
     // Run Pending database migrations at startup
-    Migrator::up(&db.connection, None).await.unwrap();
+    info!("Running migrations!");
+    Migrator::up(&db.conn, None).await.unwrap();
 
     // FrameworkOptions contains all of poise's configuration option in one struct
     // Every option can be omitted to use its default value
     let options = poise::FrameworkOptions {
-        commands: vec![
-            commands::help::help(),
-            commands::management::create_game(),
-            commands::management::deactivate_game(),
-        ],
-
-        // The global error handler for all error cases that may occur
-        on_error: |error| Box::pin(on_error(error)),
+        commands: vec![commands::game::parent(), commands::slots::parent()],
 
         // Enforce command checks even for owners (enforced by default)
         // Set to true to bypass checks, which is useful for testing
         skip_checks_for_owners: false,
 
+        on_error,
         // Set all other arguments to default
         ..Default::default()
     };
@@ -98,16 +92,18 @@ async fn main() {
     let framework = poise::Framework::builder()
         .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
-                println!("Logged in as {}", _ready.user.name);
+                info!("Logged in as {}", _ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data { db })
+                Ok(Data {
+                    db,
+                    config: settings,
+                    ap_clients: ClientPool::new(),
+                })
             })
         })
         .options(options)
         .build();
 
-    let token = var("DISCORD_TOKEN")
-        .expect("Missing `DISCORD_TOKEN`, please ensure you provide one in your .env!");
     let intents = serenity::GatewayIntents::non_privileged();
 
     let client = serenity::ClientBuilder::new(token, intents)

@@ -1,12 +1,14 @@
-use anyhow::Result;
+use anyhow::{Error, Result, bail};
 use archi_client::protocol::{
     DataPackageObject, GameData, NetworkPlayer, NetworkSlot, RoomInfo, SlotType,
 };
 use entity::{
-    archi_player, archi_room, archi_slot, game_data_package,
-    prelude::{ArchiPlayer, ArchiRoom, ArchiSlot, GameDataPackage},
+    archi_player, archi_room, archi_slot, game_data_package, item, location,
+    prelude::GameDataPackage,
 };
-use sea_orm::{ActiveModelTrait, ActiveValue::NotSet, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue::NotSet, DatabaseConnection, EntityTrait, Set, TransactionTrait,
+};
 use std::{collections::HashMap, iter::IntoIterator};
 
 pub async fn write_room_info(
@@ -14,13 +16,14 @@ pub async fn write_room_info(
     db: &DatabaseConnection,
     room_id: &String,
 ) -> Result<()> {
-    let to_insert = archi_room::ActiveModel {
+    archi_room::ActiveModel {
         id: Set(room_id.to_owned()),
         password: Set(info.password_required),
         hint_cost: Set(info.hint_cost),
         location_check_points: Set(info.location_check_points),
-    };
-    ArchiRoom::insert(to_insert).exec(db).await?;
+    }
+    .save(db)
+    .await?;
 
     Ok(())
 }
@@ -30,34 +33,42 @@ pub async fn write_single_game_package(
     package: &GameData,
     name: &String,
     db: &DatabaseConnection,
-) -> Result<()> {
+) -> Result<(), Error> {
     // Check if there's already a game with the same name and checksum
     // If the name is the same but checksum is different, update the checksum and return
     // If there is no game with the same name, this is a new game, so it should be inserted
 
     #[allow(unused_must_use)]
     match GameDataPackage::find_by_id(name.to_owned()).one(db).await {
-        Ok(Some(model)) => match model.checksum == package.checksum {
-            true => Err(String::from("already inserted")),
+        Ok(Some(existing)) => match existing.checksum == package.checksum {
+            true => bail!("Already inserted."),
             false => {
-                let mut model: game_data_package::ActiveModel = model.into();
-                model.checksum = Set(package.checksum.to_owned());
-                model.update(db).await?;
-                Ok(())
+                let old_model: game_data_package::ActiveModel = existing.into();
+                old_model.delete(db).await?;
+
+                game_data_package::ActiveModel {
+                    name: Set(name.to_owned()),
+                    checksum: Set(package.checksum.to_owned()),
+                }
+                .save(db)
+                .await;
+                write_items(package.item_name_to_id.to_owned(), name, db);
+                write_locations(package.location_name_to_id.to_owned(), name, db);
             }
         },
-        Err(_e) => Err(String::from("database error")),
-        _ => Ok(()),
+        // No existing package
+        Ok(None) => {
+            game_data_package::ActiveModel {
+                name: Set(name.to_owned()),
+                checksum: Set(package.checksum.to_owned()),
+            }
+            .save(db)
+            .await?;
+        }
+
+        // Database error
+        Err(_e) => bail!("Database Error"),
     };
-
-    // Create new game data package and insert it
-    let to_insert = game_data_package::ActiveModel {
-        name: Set(name.to_owned()),
-        checksum: Set(package.checksum.to_owned()),
-    };
-
-    GameDataPackage::insert(to_insert).exec(db).await?;
-
     Ok(())
 }
 
@@ -78,6 +89,7 @@ pub async fn write_slots(
     room_id: &String,
     db: &DatabaseConnection,
 ) -> Result<()> {
+    let txn = db.begin().await?;
     for (id, data) in slots.iter() {
         let slot_type = match data.r#type {
             SlotType::Player => 1i32,
@@ -93,8 +105,9 @@ pub async fn write_slots(
             room_id: Set(room_id.to_owned()),
             ..Default::default()
         };
-        ArchiSlot::insert(slot).exec(db).await?;
+        slot.insert(&txn).await?;
     }
+    txn.commit().await?;
     Ok(())
 }
 
@@ -104,6 +117,7 @@ pub async fn write_players(
     room_id: &String,
     db: &DatabaseConnection,
 ) -> Result<()> {
+    let txn = db.begin().await?;
     for player in players.iter() {
         let player = archi_player::ActiveModel {
             team: Set(player.team),
@@ -112,7 +126,50 @@ pub async fn write_players(
             room_id: Set(room_id.to_owned()),
             ..Default::default()
         };
-        ArchiPlayer::insert(player).exec(db).await?;
+        player.insert(&txn).await?;
     }
+    txn.commit().await?;
+    Ok(())
+}
+
+// Write all items from a GameData hashmap to the database
+pub async fn write_items(
+    items: HashMap<String, i32>,
+    game: &String,
+    db: &DatabaseConnection,
+) -> Result<(), Error> {
+    let txn = db.begin().await?;
+    for (name, id) in items.iter() {
+        item::ActiveModel {
+            game: Set(game.to_owned()),
+            id: Set(i64::from(id.to_owned())),
+            name: Set(name.to_owned()),
+            ..Default::default()
+        }
+        .save(&txn)
+        .await?;
+    }
+    txn.commit().await?;
+    Ok(())
+}
+
+// Write all items from a GameData hashmap to the database
+pub async fn write_locations(
+    locations: HashMap<String, i32>,
+    game: &String,
+    db: &DatabaseConnection,
+) -> Result<(), Error> {
+    let txn = db.begin().await?;
+    for (name, id) in locations.iter() {
+        location::ActiveModel {
+            game: Set(game.to_owned()),
+            id: Set(i64::from(id.to_owned())),
+            name: Set(name.to_owned()),
+            ..Default::default()
+        }
+        .save(&txn)
+        .await?;
+    }
+    txn.commit().await?;
     Ok(())
 }

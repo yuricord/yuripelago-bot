@@ -1,6 +1,8 @@
 use anyhow::Result;
 use entity::archi_room::Entity as ArchiRoom;
 use entity::archi_slot::{self, Entity as ArchiSlot};
+use entity::discord_slot_link;
+use entity::prelude::{DiscordSlotLink, DiscordUser};
 use entity::rando_game::{self, Entity as RandoGame};
 use poise::serenity_prelude::ChannelId;
 use sea_orm::{
@@ -8,33 +10,10 @@ use sea_orm::{
     QueryFilter, QuerySelect,
 };
 
-pub async fn fetch_rando_game(
-    channel: &ChannelId,
-    db: &DatabaseConnection,
-) -> Result<Option<rando_game::Model>, ()> {
-    #[allow(unused_must_use)]
-    match RandoGame::find()
-        .filter(rando_game::Column::GameChannel.eq(channel.get()))
-        .filter(rando_game::Column::Active.eq(true))
-        .one(db)
-        .await
-    {
-        Ok(Some(model)) => Ok(Some(model)),
-        Ok(None) => Ok(None),
-        _ => Err(()),
-    };
-
-    Err(())
-}
-
-pub async fn fetch_room_id(channel: ChannelId, db: &DatabaseConnection) -> Result<String, ()> {
-    return match fetch_rando_game(&channel, db).await {
-        Ok(Some(game)) => match game.find_related(ArchiRoom).one(db).await {
-            Ok(Some(room)) => Ok(room.id),
-            _ => Err(()),
-        },
-        _ => Err(()),
-    };
+#[derive(DerivePartialModel, FromQueryResult)]
+#[sea_orm(entity = "RandoGame")]
+struct NameOnlyRandoGame {
+    pub display_name: String,
 }
 
 #[derive(DerivePartialModel, FromQueryResult)]
@@ -43,36 +22,64 @@ struct NameOnlySlot {
     pub name: String,
 }
 
-#[allow(dead_code)]
-pub async fn fetch_slots(room_id: String, db: &DatabaseConnection) -> Result<Vec<String>> {
+/// Fetch the last rando game from the specified channel
+pub async fn fetch_rando_game(
+    channel: ChannelId,
+    db: &DatabaseConnection,
+    name: Option<String>,
+    active_check: Option<bool>,
+) -> Result<Option<rando_game::Model>, ()> {
+    #[allow(unused_must_use)]
+    let mut select = RandoGame::find().filter(rando_game::Column::GameChannel.eq(channel.get()));
+    select = match name {
+        Some(n) => select.filter(rando_game::Column::DisplayName.eq(n)),
+        None => select,
+    };
+    select = match active_check {
+        Some(val) => select.filter(rando_game::Column::Active.eq(val)),
+        None => select,
+    };
+    return match select.one(db).await {
+        Ok(Some(model)) => Ok(Some(model)),
+        Ok(None) => Ok(None),
+        _ => Err(()),
+    };
+}
+
+/// Fetch the active room id for a channel
+pub async fn fetch_room_id(channel: ChannelId, db: &DatabaseConnection) -> Result<String, ()> {
+    return match fetch_rando_game(channel, db, None, Some(true)).await {
+        Ok(Some(game)) => match game.find_related(ArchiRoom).one(db).await {
+            Ok(Some(room)) => Ok(room.id),
+            _ => Err(()),
+        },
+        _ => Err(()),
+    };
+}
+
+/// Fetch all slots for the current game
+pub async fn fetch_slots(room_id: String, db: &DatabaseConnection) -> Vec<String> {
     let slots = ArchiSlot::find()
         .select_only()
         .column(archi_slot::Column::Name)
         .filter(archi_slot::Column::RoomId.eq(room_id))
         .into_partial_model::<NameOnlySlot>()
         .all(db)
-        .await?;
-    Ok(slots.iter().map(|s| String::from(&s.name)).collect())
+        .await
+        .unwrap_or(vec![]);
+    slots.iter().map(|s| String::from(&s.name)).collect()
 }
 
-#[allow(dead_code)]
-pub async fn fetch_slots_by_name(
+/// Fetch all of a player's slots for a game
+pub async fn fetch_player_slots(
     room_id: String,
-    query: &str,
     db: &DatabaseConnection,
-) -> Result<Vec<String>> {
-    match ArchiSlot::find()
-        .select_only()
-        .column(archi_slot::Column::Name)
-        .filter(archi_slot::Column::RoomId.eq(room_id))
-        .filter(archi_slot::Column::Name.contains(query))
-        .into_partial_model::<NameOnlySlot>()
-        .all(db)
-        .await
-    {
-        Ok(slots) => Ok(slots.iter().map(|s| String::from(&s.name)).collect()),
-        _ => Ok(vec![]),
-    }
+    user_id: i64,
+) -> Vec<String> {
+    let slots = DiscordSlotLink::find()
+        .filter(discord_slot_link::Column::DiscordId.eq(user_id))
+        .one(db)
+        .await?;
 }
 
 pub async fn fetch_single_slot_by_name(
@@ -89,4 +96,22 @@ pub async fn fetch_single_slot_by_name(
         Ok(Some(slot)) => Ok(slot),
         _ => Err(()),
     }
+}
+
+pub async fn fetch_games_for_channel(
+    channel: ChannelId,
+    db: &DatabaseConnection,
+) -> Result<Vec<String>> {
+    let games = RandoGame::find()
+        .select_only()
+        .column(rando_game::Column::DisplayName)
+        .filter(rando_game::Column::GameChannel.eq(channel.get()))
+        .into_partial_model::<NameOnlyRandoGame>()
+        .all(db)
+        .await?;
+
+    Ok(games
+        .iter()
+        .map(|g| String::from(&g.display_name))
+        .collect())
 }

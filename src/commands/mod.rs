@@ -1,3 +1,3 @@
-pub mod help;
-pub mod management;
+pub mod debug;
+pub mod game;
 pub mod slots;
