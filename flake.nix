@@ -25,11 +25,13 @@
           pkgs.pkg-config
         ];
         nativeBuildInputs = [
+          pkgs.bacon
           pkgs.just
           pkgs.rustup
           pkgs.rustPlatform.bindgenHook
           pkgs.nixfmt-rfc-style
           pkgs.sea-orm-cli
+          pkgs.sqlite
           pkgs.pkg-config
         ];
       };

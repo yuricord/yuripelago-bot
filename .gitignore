@@ -13,6 +13,7 @@ dist/
 data/
 __pycache__/
 archi-bot.db
+config.toml
 
 
 # Added by cargo
