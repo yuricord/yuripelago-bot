@@ -1,5 +1,6 @@
 use crate::ApplicationContext;
 use crate::utils::autocomplete::autocomplete_rando_games;
+use crate::utils::checks::has_active_room;
 use crate::utils::fetchers::fetch_rando_game;
 use crate::utils::writers::{write_all_game_packages, write_players, write_room_info, write_slots};
 use ::entity::{rando_game, rando_game::Entity as RandoGame};
@@ -21,7 +22,8 @@ fn get_room_id(url: &String) -> String {
     slash_command,
     guild_only,
     subcommands("activate_game", "create_game", "deactivate_game",),
-    rename = "game"
+    rename = "game",
+    category = "Management"
 )]
 #[allow(unused_variables)]
 pub async fn parent(ctx: ApplicationContext<'_>, arg: String) -> Result<(), Error> {
@@ -182,20 +184,11 @@ struct DeactivateModel {
     slash_command,
     guild_only,
     required_permissions = "MANAGE_THREADS",
-    rename = "deactivate"
+    rename = "deactivate",
+    check = "has_active_room"
 )]
 pub async fn deactivate_game(ctx: ApplicationContext<'_>) -> Result<(), Error> {
     let db = &ctx.data().db.conn;
-    // Check for an active game in this channel
-    // Bail if there's no game active, pass if any other response
-    match fetch_rando_game(ctx.channel_id(), db, None, Some(true)).await {
-        Ok(None) => {
-            bail!(UserError(anyhow!(
-                "There is no active game in this channel!"
-            )))
-        }
-        _ => (),
-    }
     match DeactivateModel::execute(ctx).await? {
         Some(v) => match v.confirmation.as_str() {
             "CONFIRM" => match fetch_rando_game(ctx.channel_id(), db, None, Some(true)).await {
@@ -247,15 +240,6 @@ pub async fn activate_game(
 ) -> Result<(), Error> {
     let db = &ctx.data().db.conn;
 
-    match fetch_rando_game(ctx.channel_id(), db, Some(game.to_owned()), Some(true)).await {
-        Ok(Some(model)) => {
-            bail!(UserError(anyhow!(
-                "Error: The game `{}` is still active in this channel. Please deactivate it with `/game deactivate` if you want to re-activate a different game",
-                model.display_name
-            )))
-        }
-        _ => (),
-    }
     match fetch_rando_game(ctx.channel_id(), db, Some(game), Some(false)).await {
         Ok(Some(model)) => {
             let initial_message = ctx
@@ -283,7 +267,7 @@ pub async fn activate_game(
 }
 
 /// Get the active game's info
-#[poise::command(slash_command, guild_only, rename = "info")]
+#[poise::command(slash_command, guild_only, rename = "info", check = "has_active_room")]
 pub async fn game_info(ctx: ApplicationContext<'_>) -> Result<(), Error> {
     let db = &ctx.data().db.conn;
 

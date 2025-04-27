@@ -18,9 +18,13 @@ pub async fn autocomplete_slot_names<'a>(ctx: Context<'_>, partial: &'a str) -> 
 /// Complete the player's slots in the current game
 pub async fn autocomplete_player_slots<'a>(ctx: Context<'_>, partial: &'a str) -> Vec<String> {
     let db = &ctx.data().db.conn;
-    let user_id = i64::try_from(ctx.author().id)?;
+    let user_id = match i64::try_from(ctx.author().id) {
+        Ok(val) => val,
+        _ => return vec![],
+    };
     return match fetch_room_id(ctx.channel_id(), db).await {
-        Ok(id) => fetch_player_slots(id, db, user_id),
+        Ok(id) => fetch_player_slots(id, db, user_id, Some(partial)).await,
+        _ => vec![],
     };
 }
 

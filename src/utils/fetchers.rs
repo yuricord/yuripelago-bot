@@ -2,24 +2,35 @@ use anyhow::Result;
 use entity::archi_room::Entity as ArchiRoom;
 use entity::archi_slot::{self, Entity as ArchiSlot};
 use entity::discord_slot_link;
-use entity::prelude::{DiscordSlotLink, DiscordUser};
+use entity::prelude::DiscordSlotLink;
 use entity::rando_game::{self, Entity as RandoGame};
 use poise::serenity_prelude::ChannelId;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DerivePartialModel, EntityTrait, FromQueryResult, ModelTrait,
     QueryFilter, QuerySelect,
 };
+use serde::Serialize;
 
+/// A rando game that only has the game's name
 #[derive(DerivePartialModel, FromQueryResult)]
 #[sea_orm(entity = "RandoGame")]
 struct NameOnlyRandoGame {
     pub display_name: String,
 }
 
+/// A slot that only has the name column
 #[derive(DerivePartialModel, FromQueryResult)]
 #[sea_orm(entity = "ArchiSlot")]
 struct NameOnlySlot {
     pub name: String,
+}
+
+/// A DiscordSlotLink slot that also contains the slot name
+#[derive(Debug, FromQueryResult, Serialize)]
+pub struct SlotLinkWithName {
+    pub discord_id: i64,
+    pub slot_id: i32,
+    pub slot_name: String,
 }
 
 /// Fetch the last rando game from the specified channel
@@ -75,11 +86,23 @@ pub async fn fetch_player_slots(
     room_id: String,
     db: &DatabaseConnection,
     user_id: i64,
+    query: Option<&str>,
 ) -> Vec<String> {
-    let slots = DiscordSlotLink::find()
+    let mut select = DiscordSlotLink::find()
+        .left_join(ArchiSlot)
         .filter(discord_slot_link::Column::DiscordId.eq(user_id))
-        .one(db)
-        .await?;
+        .filter(archi_slot::Column::RoomId.eq(room_id))
+        .column_as(archi_slot::Column::Name, "slot_name");
+
+    select = match query {
+        Some(v) => select.filter(archi_slot::Column::Name.contains(v)),
+        _ => select,
+    };
+
+    match select.into_model::<SlotLinkWithName>().all(db).await {
+        Ok(slots) => slots.iter().map(|s| String::from(&s.slot_name)).collect(),
+        _ => vec![],
+    }
 }
 
 pub async fn fetch_single_slot_by_name(

@@ -1,4 +1,5 @@
-use crate::utils::autocomplete::autocomplete_slot_names;
+use crate::utils::autocomplete::{autocomplete_player_slots, autocomplete_slot_names};
+use crate::utils::checks::has_active_room;
 use crate::utils::fetchers::fetch_room_id;
 use crate::{ApplicationContext, utils::fetchers::fetch_single_slot_by_name};
 use anyhow::{Error, anyhow, bail};
@@ -23,7 +24,12 @@ pub async fn parent(ctx: ApplicationContext<'_>, arg: String) -> Result<(), Erro
 }
 
 /// Register a new slot for the game in the current channel.
-#[poise::command(slash_command, guild_only, rename = "register")]
+#[poise::command(
+    slash_command,
+    guild_only,
+    rename = "register",
+    check = "has_active_room"
+)]
 pub async fn register_slot(
     ctx: ApplicationContext<'_>,
     #[description = "Slot name to register"]
@@ -33,6 +39,8 @@ pub async fn register_slot(
     let db = &ctx.data().db.conn;
     let room_id = match fetch_room_id(ctx.channel_id(), db).await {
         Ok(val) => val,
+        // This is included to satisfy the compiler, but it should never be called
+        // because of the `has_active_room` check.
         _ => {
             bail!("No active room found in this channel!")
         }
@@ -91,11 +99,17 @@ pub async fn register_slot(
     Ok(())
 }
 
-
-#[poise::command(slash_command, guild_only, rename = "unregister")]
-pub async fn register_slot(
+#[poise::command(
+    slash_command,
+    guild_only,
+    rename = "unregister",
+    check = "has_active_room"
+)]
+pub async fn unregister_slot(
     ctx: ApplicationContext<'_>,
     #[description = "Slot name to unregister"]
-    #[autocomplete = "autocomplete_slot_names"]
+    #[autocomplete = "autocomplete_player_slots"]
     slot: String,
 ) -> Result<(), Error> {
+    Ok(())
+}
