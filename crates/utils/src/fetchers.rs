@@ -1,5 +1,4 @@
-use crate::Error;
-use anyhow::{Result, bail};
+use anyhow::{Error, Result, bail};
 use entity::archi_room::Entity as ArchiRoom;
 use entity::archi_slot::{self, Entity as ArchiSlot};
 use entity::discord_slot_link;
@@ -82,8 +81,8 @@ pub async fn fetch_slots(room_id: String, db: &DatabaseConnection) -> Vec<String
     slots.iter().map(|s| String::from(&s.name)).collect()
 }
 
-/// Fetch all of a player's slots for a game
-pub async fn fetch_player_slots(
+/// Fetch all of a player's slot names for a game
+pub async fn fetch_player_slot_names(
     room_id: String,
     db: &DatabaseConnection,
     user_id: i64,
@@ -106,6 +105,25 @@ pub async fn fetch_player_slots(
     }
 }
 
+/// Fetch all of a player's slots for a specified room id.
+pub async fn fetch_player_slots(
+    room_id: String,
+    db: &DatabaseConnection,
+    user_id: i64,
+) -> Vec<archi_slot::Model> {
+    match ArchiSlot::find()
+        .left_join(DiscordSlotLink)
+        .filter(discord_slot_link::Column::DiscordId.eq(user_id))
+        .filter(archi_slot::Column::RoomId.eq(room_id))
+        .all(db)
+        .await
+    {
+        Ok(slots) => slots,
+        _ => vec![],
+    }
+}
+
+/// Fetch a single slot by its name and the room id.
 pub async fn fetch_single_slot_by_name(
     room_id: String,
     name: &str,
@@ -122,7 +140,8 @@ pub async fn fetch_single_slot_by_name(
     }
 }
 
-pub async fn fetch_games_for_channel(
+/// Fetch all rando game names in the current channel.
+pub async fn fetch_game_names_for_channel(
     channel: ChannelId,
     db: &DatabaseConnection,
 ) -> Result<Vec<String>> {
@@ -140,6 +159,7 @@ pub async fn fetch_games_for_channel(
         .collect())
 }
 
+/// Fetch a discord user from the database, creates one if it doesn't exist.
 pub async fn fetch_discord_user(
     id: UserId,
     db: &DatabaseConnection,

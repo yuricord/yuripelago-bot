@@ -1,5 +1,5 @@
-use super::fetchers::{fetch_games_for_channel, fetch_player_slots, fetch_slots};
-use crate::{Context, utils::fetchers::fetch_room_id};
+use super::fetchers::{fetch_game_names_for_channel, fetch_player_slot_names, fetch_slots};
+use crate::{common::Context, fetchers::fetch_room_id};
 
 /// Complete slot names from the current game in the channel using a string to search.
 pub async fn autocomplete_slot_names<'a>(ctx: Context<'_>, partial: &'a str) -> Vec<String> {
@@ -23,7 +23,7 @@ pub async fn autocomplete_player_slots<'a>(ctx: Context<'_>, partial: &'a str) -
         _ => return vec![],
     };
     return match fetch_room_id(ctx.channel_id(), db).await {
-        Ok(id) => fetch_player_slots(id, db, user_id, Some(partial)).await,
+        Ok(id) => fetch_player_slot_names(id, db, user_id, Some(partial)).await,
         _ => vec![],
     };
 }
@@ -31,7 +31,7 @@ pub async fn autocomplete_player_slots<'a>(ctx: Context<'_>, partial: &'a str) -
 /// Complete rando games in the current channel
 pub async fn autocomplete_rando_games<'a>(ctx: Context<'_>, partial: &'a str) -> Vec<String> {
     let db = &ctx.data().db.conn;
-    let games = fetch_games_for_channel(ctx.channel_id(), db).await;
+    let games = fetch_game_names_for_channel(ctx.channel_id(), db).await;
     return match games {
         Ok(games) => games
             .into_iter()

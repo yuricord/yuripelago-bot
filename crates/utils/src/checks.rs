@@ -1,6 +1,6 @@
-use crate::utils::fetchers::fetch_room_id;
-use crate::{Context, Error};
-use anyhow::bail;
+use crate::common::Context;
+use crate::fetchers::fetch_room_id;
+use anyhow::{Error, bail};
 
 pub async fn has_active_room(ctx: Context<'_>) -> Result<bool, Error> {
     let db = &ctx.data().db.conn;

@@ -1,13 +1,8 @@
-use crate::ApplicationContext;
-use crate::utils::autocomplete::autocomplete_rando_games;
-use crate::utils::checks::has_active_room;
-use crate::utils::fetchers::fetch_rando_game;
-use crate::utils::writers::{write_all_game_packages, write_players, write_room_info, write_slots};
 use anyhow::{Error, anyhow, bail};
 use archi_client::client::ArchipelagoClient;
 use catppuccin::PALETTE as CTP;
 use entity::prelude::{ArchiSlot, DiscordSlotLink, DiscordUser, RandoGame};
-use entity::{archi_slot, discord_user, rando_game};
+use entity::{archi_slot, rando_game};
 use poise::Context::Application as PoiseApplicationContext;
 use poise::serenity_prelude::Color as SerenityColor;
 use poise::serenity_prelude::CreateEmbed;
@@ -16,6 +11,11 @@ use poise_error::UserError;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, LoaderTrait, QueryFilter};
 use tracing::info;
+use utils::autocomplete::autocomplete_rando_games;
+use utils::checks::has_active_room;
+use utils::common::ApplicationContext;
+use utils::fetchers::fetch_rando_game;
+use utils::writers::{write_all_game_packages, write_players, write_room_info, write_slots};
 
 fn get_room_id(url: &String) -> String {
     let room_pieces: Vec<&str> = url.split("/").collect();

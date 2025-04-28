@@ -3,13 +3,13 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
-pub(crate) struct Settings {
+pub struct Settings {
     pub discord_token: String,
     pub database_url: String,
 }
 
 impl Settings {
-    pub(crate) fn new() -> Result<Self, ConfigError> {
+    pub fn new() -> Result<Self, ConfigError> {
         let s = Config::builder()
             // Start off by merging in the "default" configuration file
             .add_source(File::with_name("config").required(false))

@@ -1,0 +1,27 @@
+[package]
+name = "commands"
+version = "0.1.1"
+edition = "2024"
+publish = false
+
+[dependencies]
+# workspace crates.io dependencies
+anyhow.workspace = true
+catppuccin.workspace = true
+poise.workspace = true
+poise_error.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+# workspace local dependencies
+archi_client.workspace = true
+entity.workspace = true
+migration.workspace = true
+utils.workspace = true
+
+# non-workspace dependencies
+itertools = "0.14"

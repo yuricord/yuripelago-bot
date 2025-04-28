@@ -1,7 +1,7 @@
 use anyhow::Result;
 use archi_client::{
     client::{ArchipelagoClient, ArchipelagoError},
-    protocol::Retrieved,
+    protocol::{ClientMessage, Retrieved, ServerMessage},
 };
 use dashmap::DashMap;
 
@@ -33,8 +33,20 @@ impl ClientPool {
     pub async fn get(&self, id: String, keys: Vec<String>) -> Result<Retrieved, ArchipelagoError> {
         let mut client = self.clients.get_mut(&id).unwrap();
 
-        let res = client.get(keys).await;
+        return client.get(keys).await;
+    }
 
-        return res;
+    /// Send a message to the client with id `id`
+    pub async fn send(&self, id: String, msg: ClientMessage) -> Result<(), ArchipelagoError> {
+        let mut client = self.clients.get_mut(&id).unwrap();
+
+        return client.send(msg).await;
+    }
+
+    /// Recieve a message from the specified client.
+    pub async fn recv(&self, id: String) -> Result<Option<ServerMessage>, ArchipelagoError> {
+        let mut client = self.clients.get_mut(&id).unwrap();
+
+        return client.recv().await;
     }
 }

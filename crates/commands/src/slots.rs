@@ -1,9 +1,3 @@
-use crate::utils::autocomplete::{autocomplete_player_slots, autocomplete_slot_names};
-use crate::utils::checks::has_active_room;
-use crate::utils::fetchers::{
-    fetch_discord_user, fetch_player_slots, fetch_rando_game, fetch_room_id,
-};
-use crate::{ApplicationContext, utils::fetchers::fetch_single_slot_by_name};
 use anyhow::{Error, anyhow, bail};
 use catppuccin::PALETTE as CTP;
 use entity::{discord_slot_link, discord_slot_link::Entity as DiscordSlotLink};
@@ -12,6 +6,13 @@ use poise::CreateReply;
 use poise::serenity_prelude::{Colour as SerenityColor, CreateEmbed};
 use poise_error::UserError;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use utils::autocomplete::{autocomplete_player_slots, autocomplete_slot_names};
+use utils::checks::has_active_room;
+use utils::common::ApplicationContext;
+use utils::fetchers::{
+    fetch_discord_user, fetch_player_slot_names, fetch_rando_game, fetch_room_id,
+    fetch_single_slot_by_name,
+};
 
 /// Top-level Game command
 #[poise::command(
@@ -145,7 +146,7 @@ pub async fn list_slots(ctx: ApplicationContext<'_>) -> Result<(), Error> {
         .await?
         .unwrap();
 
-    let description = fetch_player_slots(room_id, db, user_id, None)
+    let description = fetch_player_slot_names(room_id, db, user_id, None)
         .await
         .into_iter()
         .collect_vec()

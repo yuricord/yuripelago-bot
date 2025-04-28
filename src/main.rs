@@ -1,55 +1,13 @@
 #![warn(clippy::str_to_string)]
 
-mod commands;
-mod utils;
-
-use anyhow::Error;
 use poise::serenity_prelude as serenity;
 use poise_error::on_error;
-use sea_orm::{ConnectOptions, Database, DatabaseConnection};
-use std::time::Duration;
 use tracing::info;
 
 use migration::{Migrator, MigratorTrait};
+use utils::common::{Data, DatabaseService};
+use utils::startup::start_ap_clients;
 use utils::{client_pool::ClientPool, settings::Settings};
-
-// Types used by all command functions
-type Context<'a> = poise::Context<'a, Data, Error>;
-type ApplicationContext<'a> = poise::ApplicationContext<'a, Data, Error>;
-
-pub struct DatabaseService {
-    pub conn: DatabaseConnection,
-}
-
-impl DatabaseService {
-    pub async fn init(url: String) -> Self {
-        let mut connection_options = ConnectOptions::new(url);
-        connection_options
-            .max_connections(100)
-            .min_connections(5)
-            .connect_timeout(Duration::from_secs(8))
-            .acquire_timeout(Duration::from_secs(8))
-            .idle_timeout(Duration::from_secs(8))
-            .max_lifetime(Duration::from_secs(8))
-            .sqlx_logging(false);
-
-        // test connection
-        #[allow(clippy::expect_used)]
-        let conn = Database::connect(connection_options)
-            .await
-            .expect("Can't connect to database");
-
-        Self { conn }
-    }
-}
-
-pub struct Data {
-    db: DatabaseService,
-    #[allow(dead_code)]
-    config: Settings,
-    #[allow(dead_code)]
-    ap_clients: ClientPool,
-}
 
 // Custom user data passed to all command functions
 #[tokio::main]
@@ -78,7 +36,11 @@ async fn main() {
     // FrameworkOptions contains all of poise's configuration option in one struct
     // Every option can be omitted to use its default value
     let options = poise::FrameworkOptions {
-        commands: vec![commands::game::parent(), commands::slots::parent()],
+        commands: vec![
+            commands::game::parent(),
+            commands::slots::parent(),
+            commands::debug::send_packet(),
+        ],
 
         // Enforce command checks even for owners (enforced by default)
         // Set to true to bypass checks, which is useful for testing
@@ -94,10 +56,12 @@ async fn main() {
             Box::pin(async move {
                 info!("Logged in as {}", _ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                let client_pool = ClientPool::new();
+                start_ap_clients(&client_pool, &db.conn).await?;
                 Ok(Data {
                     db,
                     config: settings,
-                    ap_clients: ClientPool::new(),
+                    ap_clients: client_pool,
                 })
             })
         })

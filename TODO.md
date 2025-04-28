@@ -3,11 +3,12 @@
     - [x] `/game create`(needs perms)
     - [x] `/game deactivate`(needs perms)
     - [x] `/game reactivate`(needs perms)
-    - [ ] `/game info`
+    - [x] `/game info`
   - Slot Management
-    - [ ] `/slot register`
-    - [ ] `/slot unregister`
-    - [ ] `/slot unregister_all`
+    - [x] `/slot register`
+    - [x] `/slot unregister`
+    - [x] `/slot list`
+    - [ ] ~~`/slot unregister_all`~~ (No longer planned)
   - Game Info
     - [ ] `/check_count`
     - [ ] `/group_check`

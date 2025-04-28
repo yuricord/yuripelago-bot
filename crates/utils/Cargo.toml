@@ -1,0 +1,25 @@
+[package]
+name = "utils"
+version = "0.1.1"
+edition = "2024"
+publish = false
+
+[dependencies]
+# workspace crates.io dependencies
+anyhow.workspace = true
+poise.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+# workspace local dependencies
+entity.workspace = true
+migration.workspace = true
+archi_client.workspace = true
+
+# non-workspace dependencies
+config = { version = "0.15.11", default-features = false, features = ["toml", "convert-case", "async"] }
+dashmap = "6.1"
+catppuccin = "2.5.1"
