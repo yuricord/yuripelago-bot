@@ -1,13 +1,15 @@
 use crate::utils::autocomplete::{autocomplete_player_slots, autocomplete_slot_names};
 use crate::utils::checks::has_active_room;
-use crate::utils::fetchers::fetch_room_id;
+use crate::utils::fetchers::{
+    fetch_discord_user, fetch_player_slots, fetch_rando_game, fetch_room_id,
+};
 use crate::{ApplicationContext, utils::fetchers::fetch_single_slot_by_name};
 use anyhow::{Error, anyhow, bail};
-use entity::{
-    discord_slot_link, discord_slot_link::Entity as DiscordSlotLink, discord_user,
-    discord_user::Entity as DiscordUser,
-};
+use catppuccin::PALETTE as CTP;
+use entity::{discord_slot_link, discord_slot_link::Entity as DiscordSlotLink};
+use itertools::Itertools;
 use poise::CreateReply;
+use poise::serenity_prelude::{Colour as SerenityColor, CreateEmbed};
 use poise_error::UserError;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
@@ -15,7 +17,7 @@ use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 #[poise::command(
     slash_command,
     guild_only,
-    subcommands("register_slot"),
+    subcommands("register_slot", "unregister_slot", "list_slots"),
     rename = "slot"
 )]
 #[allow(unused_variables)]
@@ -37,29 +39,10 @@ pub async fn register_slot(
     slot: String,
 ) -> Result<(), Error> {
     let db = &ctx.data().db.conn;
-    let room_id = match fetch_room_id(ctx.channel_id(), db).await {
-        Ok(val) => val,
-        // This is included to satisfy the compiler, but it should never be called
-        // because of the `has_active_room` check.
-        _ => {
-            bail!("No active room found in this channel!")
-        }
-    };
+    let room_id = fetch_room_id(ctx.channel_id(), db).await?;
 
     // Get the discord user database entry
-    let user = match DiscordUser::find_by_id(i64::try_from(ctx.author().id)?)
-        .one(db)
-        .await
-    {
-        // Already in the database, skip this
-        Ok(Some(u)) => u,
-        _ => {
-            let new_user = discord_user::ActiveModel {
-                id: Set(i64::try_from(ctx.author().id)?),
-            };
-            new_user.insert(db).await?
-        }
-    };
+    let user = fetch_discord_user(ctx.author().id, db).await?;
 
     // Get the slot's database entry
     let slot = match fetch_single_slot_by_name(room_id.to_owned(), &slot, db).await {
@@ -111,5 +94,74 @@ pub async fn unregister_slot(
     #[autocomplete = "autocomplete_player_slots"]
     slot: String,
 ) -> Result<(), Error> {
+    // Set up our variables
+    let db = &ctx.data().db.conn;
+    let room_id = fetch_room_id(ctx.channel_id(), db).await?;
+    let user = fetch_discord_user(ctx.author().id, db).await?;
+
+    // Get the slot or bail
+    let slot = match fetch_single_slot_by_name(room_id.to_owned(), &slot, db).await {
+        Ok(val) => val,
+        _ => bail!(UserError(anyhow!(
+            "No slot with name {} found in this channel's game! Please try again.",
+            &slot
+        ))),
+    };
+
+    match DiscordSlotLink::find_by_id((slot.global_id, user.id))
+        .one(db)
+        .await
+    {
+        Ok(None) => {
+            bail!(UserError(anyhow!(
+                "You're not registered for slot {} in this game!",
+                &slot.name
+            )))
+        }
+        Ok(Some(link)) => {
+            let to_delete: discord_slot_link::ActiveModel = link.into();
+            to_delete.delete(db).await?;
+            ctx.send(
+                CreateReply::default()
+                    .content(format!("Unregistered you from slot {}!", slot.name)),
+            )
+            .await?;
+        }
+        _ => {
+            bail!("Database Error! Please try again.")
+        }
+    }
+
+    Ok(())
+}
+
+/// List all your slots in this channel's game.
+#[poise::command(slash_command, guild_only, rename = "list", check = "has_active_room")]
+pub async fn list_slots(ctx: ApplicationContext<'_>) -> Result<(), Error> {
+    let db = &ctx.data().db.conn;
+    let room_id = fetch_room_id(ctx.channel_id(), db).await?;
+    let user_id = i64::try_from(ctx.author().id)?;
+    let rando_game = fetch_rando_game(ctx.channel_id(), db, None, Some(true))
+        .await?
+        .unwrap();
+
+    let description = fetch_player_slots(room_id, db, user_id, None)
+        .await
+        .into_iter()
+        .collect_vec()
+        .join("\n");
+
+    let purple = CTP.mocha.colors.mauve.rgb;
+    let embed = CreateEmbed::new()
+        .title(format!(
+            "{}'s slots for {}",
+            ctx.author_member().await.unwrap().display_name(),
+            rando_game.display_name
+        ))
+        .description(description)
+        .color(SerenityColor::from_rgb(purple.r, purple.g, purple.b));
+
+    ctx.send(CreateReply::default().embed(embed)).await?;
+
     Ok(())
 }

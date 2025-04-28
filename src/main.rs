@@ -61,7 +61,7 @@ async fn main() {
             archi_bot=debug,\
             sea_orm=debug,\
             archi_client=debug,\
-            poise_error=debug",
+            poise_error=debug,",
         )
         .init();
 

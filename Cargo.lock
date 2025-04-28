@@ -126,9 +126,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "archi_client",
+ "catppuccin",
  "config",
  "dashmap 6.1.0",
  "entity",
+ "itertools",
  "migration",
  "poise",
  "poise_error",
@@ -537,6 +539,21 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "catppuccin"
+version = "2.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d52356592c50dd7c1bb3a91e152c57719572bd94c9a31363c8cd36f81640ac7d"
+dependencies = [
+ "itertools",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.100",
 ]
 
 [[package]]
@@ -1598,6 +1615,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2142,6 +2168,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
+]
+
+[[package]]
+name = "prettyplease"
+version = "0.2.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "664ec5419c51e34154eec046ebcba56312d5a2fc3b09a06da188e1ad21afadf6"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.100",
 ]
 
 [[package]]

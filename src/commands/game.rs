@@ -11,6 +11,7 @@ use poise::{CreateReply, Modal};
 use poise_error::UserError;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
+use tracing::info;
 
 fn get_room_id(url: &String) -> String {
     let room_pieces: Vec<&str> = url.split("/").collect();
@@ -107,7 +108,7 @@ pub async fn create_game(
     // write room info to database
     match write_room_info(archi_client.room_info(), db, &room_id).await {
         Err(_e) => {
-            bail!(UserError(anyhow!("Error: Room already exists in database")));
+            bail!(anyhow!(_e));
         }
         _ => (),
     };
@@ -132,7 +133,7 @@ pub async fn create_game(
         active: Set(true),
         ..Default::default()
     }
-    .save(db)
+    .insert(db)
     .await?;
 
     let slot = bot_slot.unwrap_or(String::from("ArchiBot"));
@@ -149,10 +150,12 @@ pub async fn create_game(
     {
         Ok(res) => {
             write_slots(res.slot_info, &room_id, db).await?;
+            info!("Wrote archi slots for {}", &room_id);
             write_players(res.players, &room_id, db).await?;
+            info!("Wrote archi players for {}", &room_id);
             ()
         }
-        _ => (),
+        Err(_e) => bail!(_e),
     };
 
     // Final response

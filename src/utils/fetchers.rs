@@ -1,13 +1,15 @@
-use anyhow::Result;
+use crate::Error;
+use anyhow::{Result, bail};
 use entity::archi_room::Entity as ArchiRoom;
 use entity::archi_slot::{self, Entity as ArchiSlot};
 use entity::discord_slot_link;
+use entity::discord_user::{self, Entity as DiscordUser};
 use entity::prelude::DiscordSlotLink;
 use entity::rando_game::{self, Entity as RandoGame};
-use poise::serenity_prelude::ChannelId;
+use poise::serenity_prelude::{ChannelId, UserId};
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, DerivePartialModel, EntityTrait, FromQueryResult, ModelTrait,
-    QueryFilter, QuerySelect,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, DerivePartialModel, EntityTrait,
+    FromQueryResult, ModelTrait, QueryFilter, QuerySelect, Set,
 };
 use serde::Serialize;
 
@@ -39,7 +41,7 @@ pub async fn fetch_rando_game(
     db: &DatabaseConnection,
     name: Option<String>,
     active_check: Option<bool>,
-) -> Result<Option<rando_game::Model>, ()> {
+) -> Result<Option<rando_game::Model>, Error> {
     #[allow(unused_must_use)]
     let mut select = RandoGame::find().filter(rando_game::Column::GameChannel.eq(channel.get()));
     select = match name {
@@ -52,19 +54,18 @@ pub async fn fetch_rando_game(
     };
     return match select.one(db).await {
         Ok(Some(model)) => Ok(Some(model)),
-        Ok(None) => Ok(None),
-        _ => Err(()),
+        _ => bail!("Database Error: No rando game found!"),
     };
 }
 
 /// Fetch the active room id for a channel
-pub async fn fetch_room_id(channel: ChannelId, db: &DatabaseConnection) -> Result<String, ()> {
+pub async fn fetch_room_id(channel: ChannelId, db: &DatabaseConnection) -> Result<String, Error> {
     return match fetch_rando_game(channel, db, None, Some(true)).await {
         Ok(Some(game)) => match game.find_related(ArchiRoom).one(db).await {
             Ok(Some(room)) => Ok(room.id),
-            _ => Err(()),
+            _ => bail!("Database Error! Please try again."),
         },
-        _ => Err(()),
+        _ => bail!("No game found in database!"),
     };
 }
 
@@ -137,4 +138,23 @@ pub async fn fetch_games_for_channel(
         .iter()
         .map(|g| String::from(&g.display_name))
         .collect())
+}
+
+pub async fn fetch_discord_user(
+    id: UserId,
+    db: &DatabaseConnection,
+) -> Result<discord_user::Model, Error> {
+    let real_id = i64::try_from(id)?;
+
+    return match DiscordUser::find_by_id(real_id).one(db).await {
+        // Already in the database, skip this
+        Ok(Some(u)) => Ok(u),
+        _ => {
+            let new_user = discord_user::ActiveModel { id: Set(real_id) };
+            match new_user.insert(db).await {
+                Ok(m) => Ok(m),
+                _ => bail!("Database error!"),
+            }
+        }
+    };
 }

@@ -22,7 +22,7 @@ pub async fn write_room_info(
         hint_cost: Set(info.hint_cost),
         location_check_points: Set(info.location_check_points),
     }
-    .save(db)
+    .insert(db)
     .await?;
 
     Ok(())
@@ -50,7 +50,7 @@ pub async fn write_single_game_package(
                     name: Set(name.to_owned()),
                     checksum: Set(package.checksum.to_owned()),
                 }
-                .save(db)
+                .insert(db)
                 .await;
                 write_items(package.item_name_to_id.to_owned(), name, db);
                 write_locations(package.location_name_to_id.to_owned(), name, db);
@@ -62,7 +62,7 @@ pub async fn write_single_game_package(
                 name: Set(name.to_owned()),
                 checksum: Set(package.checksum.to_owned()),
             }
-            .save(db)
+            .insert(db)
             .await?;
         }
 
@@ -85,7 +85,7 @@ pub async fn write_all_game_packages(
 
 /// Write all slots for a specific room to the database.
 pub async fn write_slots(
-    slots: HashMap<i32, NetworkSlot>,
+    slots: HashMap<String, NetworkSlot>,
     room_id: &String,
     db: &DatabaseConnection,
 ) -> Result<()> {
@@ -98,7 +98,7 @@ pub async fn write_slots(
         };
         let slot = archi_slot::ActiveModel {
             global_id: NotSet,
-            id: Set(id.to_owned()),
+            id: Set(id.parse::<i32>().unwrap().to_owned()),
             name: Set(String::from(&data.name)),
             game: Set(String::from(&data.game)),
             r#type: Set(slot_type),
@@ -146,7 +146,7 @@ pub async fn write_items(
             name: Set(name.to_owned()),
             ..Default::default()
         }
-        .save(&txn)
+        .insert(&txn)
         .await?;
     }
     txn.commit().await?;
@@ -167,7 +167,7 @@ pub async fn write_locations(
             name: Set(name.to_owned()),
             ..Default::default()
         }
-        .save(&txn)
+        .insert(&txn)
         .await?;
     }
     txn.commit().await?;

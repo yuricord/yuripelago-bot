@@ -38,3 +38,5 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 poise_error = { git = "https://github.com/pyrox0/poise-error", rev="9b79fd7aff48a621884bdcca87fd9d9efcc20918" }
 dashmap = "6.1"
+itertools = "0.14"
+catppuccin = "2.5.1"
