@@ -3,14 +3,18 @@ use crate::utils::autocomplete::autocomplete_rando_games;
 use crate::utils::checks::has_active_room;
 use crate::utils::fetchers::fetch_rando_game;
 use crate::utils::writers::{write_all_game_packages, write_players, write_room_info, write_slots};
-use ::entity::{rando_game, rando_game::Entity as RandoGame};
 use anyhow::{Error, anyhow, bail};
 use archi_client::client::ArchipelagoClient;
+use catppuccin::PALETTE as CTP;
+use entity::prelude::{ArchiSlot, DiscordSlotLink, DiscordUser, RandoGame};
+use entity::{archi_slot, discord_user, rando_game};
 use poise::Context::Application as PoiseApplicationContext;
+use poise::serenity_prelude::Color as SerenityColor;
+use poise::serenity_prelude::CreateEmbed;
 use poise::{CreateReply, Modal};
 use poise_error::UserError;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, LoaderTrait, QueryFilter};
 use tracing::info;
 
 fn get_room_id(url: &String) -> String {
@@ -22,7 +26,7 @@ fn get_room_id(url: &String) -> String {
 #[poise::command(
     slash_command,
     guild_only,
-    subcommands("activate_game", "create_game", "deactivate_game",),
+    subcommands("activate_game", "create_game", "deactivate_game", "game_info"),
     rename = "game",
     category = "Management"
 )]
@@ -273,6 +277,35 @@ pub async fn activate_game(
 #[poise::command(slash_command, guild_only, rename = "info", check = "has_active_room")]
 pub async fn game_info(ctx: ApplicationContext<'_>) -> Result<(), Error> {
     let db = &ctx.data().db.conn;
+    let rando_game = fetch_rando_game(ctx.channel_id(), db, None, Some(true))
+        .await?
+        .unwrap();
+
+    let slots: Vec<archi_slot::Model> = ArchiSlot::find()
+        .filter(archi_slot::Column::RoomId.eq(rando_game.room_id))
+        .all(db)
+        .await?;
+
+    let players = slots
+        .load_many_to_many(DiscordUser, DiscordSlotLink, db)
+        .await?
+        .into_iter()
+        .nth(0)
+        .unwrap();
+
+    let green = CTP.mocha.colors.green.rgb;
+
+    let embed = CreateEmbed::default()
+        .title(rando_game.display_name)
+        .color(SerenityColor::from_rgb(green.r, green.g, green.b))
+        .fields(vec![
+            ("Tracker", String::from(rando_game.tracker_url), false),
+            ("Port", rando_game.port.to_string(), true),
+            ("Slot Count", slots.len().to_string(), true),
+            ("Player Count", players.len().to_string(), true),
+        ]);
+
+    ctx.send(CreateReply::default().embed(embed)).await?;
 
     Ok(())
 }
